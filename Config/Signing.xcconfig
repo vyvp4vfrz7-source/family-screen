@@ -1,0 +1,17 @@
+// Edit these two lines before your first build.
+// 1. A unique ID for your app, e.g. com.yourname.familyscreen
+PRODUCT_BUNDLE_IDENTIFIER = com.example.familyscreen
+// 2. Your Apple team ID (Xcode fills this in if you pick a team in Signing & Capabilities).
+DEVELOPMENT_TEAM =
+
+// Leave NO while using a free Apple ID. Change to YES after joining the paid
+// Apple Developer Program: turns on CloudKit sync between homes and Apple WeatherKit.
+APPLE_SERVICES = NO
+
+// --- no need to edit below ---
+ENTITLEMENTS_YES = Config/FamilyScreen.entitlements
+ENTITLEMENTS_NO =
+CODE_SIGN_ENTITLEMENTS = $(ENTITLEMENTS_$(APPLE_SERVICES))
+FLAG_YES = APPLE_SERVICES
+FLAG_NO =
+SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited) $(FLAG_$(APPLE_SERVICES))
