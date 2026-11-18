@@ -3,6 +3,7 @@ import SwiftUI
 struct DashboardView: View {
     @ObservedObject private var settings = AppSettings.shared
     @ObservedObject private var store = FamilyStore.shared
+    @ObservedObject private var network = NetworkStatus.shared
     @StateObject private var calendar = CalendarFeed()
     @StateObject private var news = NewsFeedReader()
 
@@ -36,6 +37,17 @@ struct DashboardView: View {
                     .onTapGesture { wakeUntil = Date().addingTimeInterval(120); now = Date() }
             } else {
                 dashboard
+            }
+            if !network.online && !isNight {
+                VStack {
+                    Label(settings.t(.offline), systemImage: "wifi.slash")
+                        .font(.subheadline.bold())
+                        .padding(.horizontal, 14).padding(.vertical, 8)
+                        .background(Capsule().fill(Color.orange.opacity(0.85)))
+                        .padding(.top, 20)
+                    Spacer()
+                }
+                .allowsHitTesting(false)
             }
             if let arrival = store.arrival, !isNight {
                 ArrivalBanner(arrival: arrival)

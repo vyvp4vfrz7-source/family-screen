@@ -58,6 +58,28 @@ final class FamilyStore: ObservableObject {
 
     var homeName: String { AppSettings.shared.homeName }
 
+    /// What the screen shows: everything except homes this iPad has hidden.
+    var shownPhotos: [FamilyPhoto] { photos.filter { !AppSettings.shared.hiddenHomes.contains($0.author) } }
+    var shownMessages: [FamilyMessage] { messages.filter { !AppSettings.shared.hiddenHomes.contains($0.author) } }
+
+    func hide(author: String) {
+        guard author != homeName, !AppSettings.shared.hiddenHomes.contains(author) else { return }
+        AppSettings.shared.hiddenHomes.append(author)
+        if arrival?.author == author { arrival = nil }
+        objectWillChange.send()
+    }
+
+    /// Opens an email to the app's support address about a photo or message.
+    func report(author: String, text: String, id: String) {
+        let to = Bundle.main.object(forInfoDictionaryKey: "SupportEmail") as? String ?? ""
+        var c = URLComponents()
+        c.scheme = "mailto"
+        c.path = to
+        c.queryItems = [.init(name: "subject", value: "Family Screen report"),
+                        .init(name: "body", value: "Item \(id) from \(author):\n\(text)\n\nWhat is wrong:\n")]
+        if let url = c.url { UIApplication.shared.open(url) }
+    }
+
     // MARK: - Images on disk
 
     func imageURL(_ id: String) -> URL { folder.appendingPathComponent("\(id).jpg") }
@@ -182,8 +204,8 @@ final class FamilyStore: ObservableObject {
 
     private func announceArrivals() {
         let fresh = lastSeen
-        let newMessage = messages.first { $0.author != homeName && $0.date > fresh }
-        let newPhoto = photos.first { $0.author != homeName && $0.date > fresh }
+        let newMessage = shownMessages.first { $0.author != homeName && $0.date > fresh }
+        let newPhoto = shownPhotos.first { $0.author != homeName && $0.date > fresh }
         if let m = newMessage {
             arrival = Arrival(id: m.id, kind: .message, author: m.author, text: m.text)
         } else if let p = newPhoto {

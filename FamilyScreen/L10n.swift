@@ -54,6 +54,8 @@ enum L: String {
     case familySync, inviteHome, syncOff, slideshow, seconds, newMessageFrom, newPhotoFrom
     case itIs, degrees, calendarDenied, noPhotos, delete, photoNote
     case pages, pageHome, pagePhotos, pageClocks, rotatePages, everyPage
+    case sendLink, linkOn, members, remove, leaveFamily, deleteFamily, confirmDelete, joinMessage
+    case hidePosts, report, hiddenHomes, show, offline, privacy
 
     private static let table: [L: [AppLanguage: String]] = [
         .addPhoto: [.english: "Add photo", .cantonese: "加相", .mandarin: "添加照片", .hindi: "फ़ोटो जोड़ें", .polish: "Dodaj zdjęcie"],
@@ -115,6 +117,20 @@ enum L: String {
         .pageClocks: [.english: "Big clocks and weather", .cantonese: "大時鐘同天氣", .mandarin: "大时钟和天气", .hindi: "बड़ी घड़ियाँ और मौसम", .polish: "Duże zegary i pogoda"],
         .rotatePages: [.english: "Change page automatically", .cantonese: "自動轉頁", .mandarin: "自动翻页", .hindi: "अपने आप पेज बदलें", .polish: "Zmieniaj strony automatycznie"],
         .everyPage: [.english: "Every", .cantonese: "每", .mandarin: "每", .hindi: "हर", .polish: "Co"],
+        .sendLink: [.english: "Send invite link", .cantonese: "傳送邀請連結", .mandarin: "发送邀请链接", .hindi: "आमंत्रण लिंक भेजें", .polish: "Wyślij link z zaproszeniem"],
+        .linkOn: [.english: "Invite link works", .cantonese: "邀請連結生效", .mandarin: "邀请链接有效", .hindi: "आमंत्रण लिंक चालू", .polish: "Link z zaproszeniem aktywny"],
+        .members: [.english: "Family members", .cantonese: "家庭成員", .mandarin: "家庭成员", .hindi: "परिवार के सदस्य", .polish: "Członkowie rodziny"],
+        .remove: [.english: "Remove", .cantonese: "移除", .mandarin: "移除", .hindi: "हटाएँ", .polish: "Usuń"],
+        .leaveFamily: [.english: "Leave this family", .cantonese: "退出呢個家庭", .mandarin: "退出这个家庭", .hindi: "इस परिवार को छोड़ें", .polish: "Opuść tę rodzinę"],
+        .deleteFamily: [.english: "Delete family and all photos", .cantonese: "刪除家庭同所有相片", .mandarin: "删除家庭和所有照片", .hindi: "परिवार और सभी फ़ोटो हटाएँ", .polish: "Usuń rodzinę i wszystkie zdjęcia"],
+        .confirmDelete: [.english: "This can't be undone.", .cantonese: "呢個動作無法復原。", .mandarin: "此操作无法撤销。", .hindi: "इसे वापस नहीं किया जा सकता।", .polish: "Tego nie można cofnąć."],
+        .joinMessage: [.english: "Tap to join our Family Screen:", .cantonese: "撳呢條連結加入我哋嘅家庭屏幕：", .mandarin: "点此链接加入我们的家庭屏幕：", .hindi: "हमारी फ़ैमिली स्क्रीन से जुड़ने के लिए टैप करें:", .polish: "Dołącz do naszego Family Screen:"],
+        .hidePosts: [.english: "Hide posts from this home", .cantonese: "隱藏呢個屋企嘅內容", .mandarin: "隐藏这个家的内容", .hindi: "इस घर की पोस्ट छिपाएँ", .polish: "Ukryj wpisy z tego domu"],
+        .report: [.english: "Report", .cantonese: "舉報", .mandarin: "举报", .hindi: "रिपोर्ट करें", .polish: "Zgłoś"],
+        .hiddenHomes: [.english: "Hidden homes", .cantonese: "已隱藏嘅屋企", .mandarin: "已隐藏的家", .hindi: "छिपाए गए घर", .polish: "Ukryte domy"],
+        .show: [.english: "Show again", .cantonese: "再顯示", .mandarin: "重新显示", .hindi: "फिर दिखाएँ", .polish: "Pokaż ponownie"],
+        .offline: [.english: "Offline · showing saved photos and messages", .cantonese: "離線 · 顯示已儲存嘅相片同留言", .mandarin: "离线 · 显示已保存的照片和留言", .hindi: "ऑफ़लाइन · सहेजी गई फ़ोटो और संदेश", .polish: "Offline · zapisane zdjęcia i wiadomości"],
+        .privacy: [.english: "Privacy", .cantonese: "私隱", .mandarin: "隐私", .hindi: "गोपनीयता", .polish: "Prywatność"],
     ]
 
     func text(_ lang: AppLanguage) -> String {

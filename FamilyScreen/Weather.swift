@@ -4,7 +4,7 @@ import CoreLocation
 import WeatherKit
 #endif
 
-struct WeatherNow: Equatable {
+struct WeatherNow: Equatable, Codable {
     var temperature: Double   // °C
     var high: Double?
     var low: Double?
@@ -14,7 +14,18 @@ struct WeatherNow: Equatable {
 /// Weather for a city. Uses Apple WeatherKit on iPadOS 16+ when the app is built
 /// with APPLE_SERVICES = YES; otherwise Open-Meteo (free, no key, non-commercial).
 enum WeatherProvider {
+    /// Latest weather, or the last saved reading when offline.
     static func current(for city: City) async -> WeatherNow? {
+        let key = "weather.\(city.latitude),\(city.longitude)"
+        if let fresh = await fetch(city) {
+            if let data = try? JSONEncoder().encode(fresh) { UserDefaults.standard.set(data, forKey: key) }
+            return fresh
+        }
+        guard let data = UserDefaults.standard.data(forKey: key) else { return nil }
+        return try? JSONDecoder().decode(WeatherNow.self, from: data)
+    }
+
+    private static func fetch(_ city: City) async -> WeatherNow? {
         #if APPLE_SERVICES
         if #available(iOS 16, *) {
             if let w = await weatherKit(city) { return w }

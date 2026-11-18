@@ -10,7 +10,7 @@ struct PhotoPanel: View {
     @State private var image: UIImage?
 
     private var current: FamilyPhoto? {
-        store.photos.isEmpty ? nil : store.photos[index % store.photos.count]
+        store.shownPhotos.isEmpty ? nil : store.shownPhotos[index % store.shownPhotos.count]
     }
 
     var body: some View {
@@ -48,6 +48,14 @@ struct PhotoPanel: View {
                 Button(role: .destructive) { store.deletePhoto(photo.id) } label: {
                     Label(settings.t(.delete), systemImage: "trash")
                 }
+                if photo.author != settings.homeName {
+                    Button { store.hide(author: photo.author) } label: {
+                        Label(settings.t(.hidePosts), systemImage: "eye.slash")
+                    }
+                    Button { store.report(author: photo.author, text: photo.note, id: photo.id) } label: {
+                        Label(settings.t(.report), systemImage: "exclamationmark.bubble")
+                    }
+                }
             }
         }
         .onTapGesture { advance() }
@@ -65,8 +73,8 @@ struct PhotoPanel: View {
     }
 
     private func advance() {
-        guard !store.photos.isEmpty else { return }
-        index = (index + 1) % store.photos.count
+        guard !store.shownPhotos.isEmpty else { return }
+        index = (index + 1) % store.shownPhotos.count
         loadImage()
     }
 
@@ -132,7 +140,7 @@ struct MessageBoard: View {
             }
             ScrollView {
                 VStack(alignment: .leading, spacing: 10) {
-                    ForEach(store.messages.prefix(12)) { m in
+                    ForEach(store.shownMessages.prefix(12)) { m in
                         row(m)
                     }
                 }
@@ -156,6 +164,14 @@ struct MessageBoard: View {
         .contextMenu {
             Button(role: .destructive) { store.deleteMessage(m.id) } label: {
                 Label(settings.t(.delete), systemImage: "trash")
+            }
+            if m.author != settings.homeName {
+                Button { store.hide(author: m.author) } label: {
+                    Label(settings.t(.hidePosts), systemImage: "eye.slash")
+                }
+                Button { store.report(author: m.author, text: m.text, id: m.id) } label: {
+                    Label(settings.t(.report), systemImage: "exclamationmark.bubble")
+                }
             }
         }
     }

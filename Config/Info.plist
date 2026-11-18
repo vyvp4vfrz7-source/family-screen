@@ -32,6 +32,12 @@
 	<true/>
 	<key>FamilyCloudContainer</key>
 	<string>iCloud.$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>SupportEmail</key>
+	<string>$(SUPPORT_EMAIL)</string>
+	<key>PrivacyPolicyURL</key>
+	<string>$(PRIVACY_URL)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCalendarsUsageDescription</key>

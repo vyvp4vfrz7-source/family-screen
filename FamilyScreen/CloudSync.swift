@@ -170,19 +170,80 @@ final class CloudSync {
 
     // MARK: - Sharing between homes
 
-    /// Returns the zone's share, creating it the first time.
-    func familyShare() async throws -> CKShare {
+    struct Member: Identifiable {
+        var id: String
+        var name: String
+        var isOwner: Bool
+        var participant: CKShare.Participant
+    }
+
+    var isOwner: Bool { !isGuest }
+
+    private var shareID: CKRecord.ID { CKRecord.ID(recordName: CKRecordNameZoneWideShare, zoneID: zoneID) }
+
+    private func existingShare() async -> CKShare? {
+        try? await database.record(for: shareID) as? CKShare
+    }
+
+    /// The family's invite link. Anyone who taps it joins this family, so it is
+    /// only ever sent by the family itself (Messages, WhatsApp, email…). The
+    /// link is long and random and can be switched off once everyone has joined.
+    func inviteLink() async throws -> URL {
         try await ensureZone()
-        let shareID = CKRecord.ID(recordName: CKRecordNameZoneWideShare, zoneID: zoneID)
-        if let existing = try? await database.record(for: shareID) as? CKShare {
-            return existing
-        }
+        if let share = await existingShare(), let url = share.url { return url }
         let share = CKShare(recordZoneID: zoneID)
         share[CKShare.SystemFieldKey.title] = "Family Screen" as CKRecordValue
-        share.publicPermission = .none
+        share.publicPermission = .readWrite
         let result = try await database.modifyRecords(saving: [share], deleting: [])
-        guard let saved = try result.saveResults[share.recordID]?.get() as? CKShare else { return share }
-        return saved
+        guard let saved = try result.saveResults[share.recordID]?.get() as? CKShare, let url = saved.url else {
+            throw CKError(.internalError)
+        }
+        return url
+    }
+
+    /// Turns the invite link off (or back on). Homes that already joined stay in.
+    func setLinkActive(_ on: Bool) async throws {
+        guard isOwner, let share = await existingShare() else { return }
+        share.publicPermission = on ? .readWrite : .none
+        _ = try await database.modifyRecords(saving: [share], deleting: [], savePolicy: .changedKeys)
+    }
+
+    func linkIsActive() async -> Bool {
+        (await existingShare())?.publicPermission == .readWrite
+    }
+
+    func members() async -> [Member] {
+        guard let share = await existingShare() else { return [] }
+        return share.participants.compactMap { p in
+            guard p.acceptanceStatus == .accepted || p.role == .owner else { return nil }
+            let comps = p.userIdentity.nameComponents
+            let name = comps.map { PersonNameComponentsFormatter().string(from: $0) } ?? ""
+            return Member(id: p.userIdentity.userRecordID?.recordName ?? UUID().uuidString,
+                          name: name.isEmpty ? (p.userIdentity.lookupInfo?.emailAddress ?? "iCloud user") : name,
+                          isOwner: p.role == .owner, participant: p)
+        }
+    }
+
+    /// Owner only: removes a home from the family. Their iPad loses access at once.
+    func remove(_ member: Member) async throws {
+        guard isOwner, let share = await existingShare() else { return }
+        share.removeParticipant(member.participant)
+        _ = try await database.modifyRecords(saving: [share], deleting: [], savePolicy: .changedKeys)
+    }
+
+    /// Guest: leave the family. Owner: delete the family and all its photos
+    /// and messages from iCloud for everyone.
+    func leaveOrDelete() async throws {
+        if isGuest {
+            _ = try? await database.modifyRecords(saving: [], deleting: [shareID])
+        } else {
+            _ = try await container.privateCloudDatabase.deleteRecordZone(withID: zoneID)
+        }
+        isGuest = false
+        zoneReady = false
+        changeToken = nil
+        defaults.removeObject(forKey: "cloud.zoneName")
+        defaults.removeObject(forKey: "cloud.zoneOwner")
     }
 
     /// Called when the other home taps the invite link.

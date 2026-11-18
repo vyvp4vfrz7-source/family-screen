@@ -22,8 +22,11 @@ With a free Apple ID the app works on one iPad on its own and must be re-run fro
 2. In `Config/Signing.xcconfig` set `APPLE_SERVICES = YES`.
 3. In Signing & Capabilities, Xcode adds **iCloud (CloudKit)** with container `iCloud.<your bundle id>`. If it shows a red error, tick the container or press **+** to create it.
 4. At developer.apple.com ▸ Certificates, IDs & Profiles ▸ Identifiers ▸ your app ▸ tick **WeatherKit** (both the Capabilities and App Services tabs) and save.
-5. Run on the first home's iPad, open Settings (gear) ▸ **Invite the other home**, and send the link (Messages or email) to someone in the other home.
-6. They install the app on their iPad (same build), sign in to iCloud, and tap the link. Both screens now share photos and messages; new items pop up within 30 seconds.
+5. Run on the first home's iPad, open Settings (gear) ▸ **Send invite link**, and send it by Messages, WhatsApp or email.
+6. The other home installs the app, signs in to iCloud, and taps the link once. Both screens now share photos and messages; new items pop up within 30 seconds.
+7. Once everyone has joined you can switch the link off. Settings also lists family members (remove one), and has Leave / Delete family.
+
+Before the App Store: set `SUPPORT_EMAIL` and `PRIVACY_URL` in `Config/Signing.xcconfig`. The policy text is `docs/privacy.html`; App Store Connect answers are in `docs/app-store-privacy.md`.
 
 Each family's data stays in their own iCloud. There is no server and no shared key.
 

@@ -4,6 +4,11 @@ PRODUCT_BUNDLE_IDENTIFIER = com.example.familyscreen
 // 2. Your Apple team ID (Xcode fills this in if you pick a team in Signing & Capabilities).
 DEVELOPMENT_TEAM =
 
+// 3. Where people send reports about content, and your privacy policy page.
+//    Keep the odd "$()" in the URL: it stops "//" being read as a comment.
+SUPPORT_EMAIL = support@example.com
+PRIVACY_URL = https:/$()/example.com/family-screen/privacy
+
 // Leave NO while using a free Apple ID. Change to YES after joining the paid
 // Apple Developer Program: turns on CloudKit sync between homes and Apple WeatherKit.
 APPLE_SERVICES = NO

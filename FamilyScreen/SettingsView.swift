@@ -11,7 +11,6 @@ struct SettingsView: View {
     @State private var queryB = ""
     @State private var cityMessage = ""
     @State private var newFeed = ""
-    @State private var cloudStatus = ""
 
     var body: some View {
         NavigationView {
@@ -82,23 +81,36 @@ struct SettingsView: View {
                     }
                 }
 
-                Section(header: Text(settings.t(.familySync)), footer: Text(store.syncStatus)) {
-                    #if APPLE_SERVICES
-                    Text(cloudStatus).foregroundColor(.secondary)
-                    Button(settings.t(.inviteHome)) { Task { await ShareInviter.present() } }
-                    #else
+                #if APPLE_SERVICES
+                FamilySection()
+                #else
+                Section(header: Text(settings.t(.familySync))) {
                     Text(settings.t(.syncOff)).foregroundColor(.secondary)
-                    #endif
+                }
+                #endif
+
+                if !settings.hiddenHomes.isEmpty {
+                    Section(header: Text(settings.t(.hiddenHomes))) {
+                        ForEach(settings.hiddenHomes, id: \.self) { home in
+                            HStack {
+                                Text(home)
+                                Spacer()
+                                Button(settings.t(.show)) { settings.hiddenHomes.removeAll { $0 == home } }
+                            }
+                        }
+                    }
+                }
+
+                Section {
+                    if let url = URL(string: Bundle.main.object(forInfoDictionaryKey: "PrivacyPolicyURL") as? String ?? ""),
+                       url.scheme == "https" {
+                        Link(settings.t(.privacy), destination: url)
+                    }
                 }
             }
             .navigationTitle(settings.t(.settings))
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) { Button(settings.t(.done)) { dismiss() } }
-            }
-            .task {
-                #if APPLE_SERVICES
-                cloudStatus = await store.cloud.accountStatusText()
-                #endif
             }
         }
         .navigationViewStyle(.stack)
@@ -126,20 +138,85 @@ struct SettingsView: View {
 }
 
 #if APPLE_SERVICES
-/// Shows Apple's share sheet so the other home gets an invite link.
-enum ShareInviter {
-    @MainActor
-    static func present() async {
-        let store = FamilyStore.shared
+/// Linking the two homes: one invite link, member list, leave or delete.
+struct FamilySection: View {
+    @ObservedObject private var settings = AppSettings.shared
+    @ObservedObject private var store = FamilyStore.shared
+    @State private var status = ""
+    @State private var members: [CloudSync.Member] = []
+    @State private var linkOn = true
+    @State private var confirming = false
+
+    private var cloud: CloudSync { store.cloud }
+
+    var body: some View {
+        Section(header: Text(settings.t(.familySync)), footer: Text(store.syncStatus)) {
+            Text(status).foregroundColor(.secondary)
+            if cloud.isOwner {
+                Button(settings.t(.sendLink)) { Task { await sendLink() } }
+                Toggle(settings.t(.linkOn), isOn: Binding(get: { linkOn }, set: { on in
+                    linkOn = on
+                    Task { await run { try await cloud.setLinkActive(on) } }
+                }))
+            }
+        }
+        if !members.isEmpty {
+            Section(header: Text(settings.t(.members))) {
+                ForEach(members) { m in
+                    HStack {
+                        Text(m.name)
+                        Spacer()
+                        if cloud.isOwner && !m.isOwner {
+                            Button(settings.t(.remove), role: .destructive) {
+                                Task { await run { try await cloud.remove(m) }; await reload() }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Section {
+            Button(cloud.isOwner ? settings.t(.deleteFamily) : settings.t(.leaveFamily), role: .destructive) {
+                confirming = true
+            }
+            .alert(cloud.isOwner ? settings.t(.deleteFamily) : settings.t(.leaveFamily), isPresented: $confirming) {
+                Button(settings.t(.cancel), role: .cancel) {}
+                Button(settings.t(.delete), role: .destructive) {
+                    Task {
+                        await run { try await cloud.leaveOrDelete() }
+                        store.resetLocal()
+                        await reload()
+                    }
+                }
+            } message: {
+                Text(settings.t(.confirmDelete))
+            }
+        }
+        .task { await reload() }
+    }
+
+    private func reload() async {
+        status = await cloud.accountStatusText()
+        members = await cloud.members()
+        linkOn = await cloud.linkIsActive() || members.isEmpty
+    }
+
+    private func run(_ work: () async throws -> Void) async {
+        do { try await work() } catch { store.syncStatus = error.localizedDescription }
+    }
+
+    /// One tap for the other home: the link opens the app and joins the family.
+    private func sendLink() async {
         do {
-            let share = try await store.cloud.familyShare()
-            let controller = UICloudSharingController(share: share, container: store.cloud.container)
-            controller.availablePermissions = [.allowReadWrite, .allowPrivate]
+            let url = try await cloud.inviteLink()
+            linkOn = true
+            let text = "\(settings.t(.joinMessage)) \(url.absoluteString)"
+            let sheet = UIActivityViewController(activityItems: [text], applicationActivities: nil)
             guard let top = TopController.find() else { return }
-            controller.popoverPresentationController?.sourceView = top.view
-            controller.popoverPresentationController?.sourceRect =
+            sheet.popoverPresentationController?.sourceView = top.view
+            sheet.popoverPresentationController?.sourceRect =
                 CGRect(x: top.view.bounds.midX, y: top.view.bounds.midY, width: 1, height: 1)
-            top.present(controller, animated: true)
+            top.present(sheet, animated: true)
         } catch {
             store.syncStatus = error.localizedDescription
         }

@@ -65,6 +65,7 @@ final class AppSettings: ObservableObject {
     @Published var pages: [ScreenPage] { didSet { save() } }
     @Published var rotatePages: Bool { didSet { save() } }
     @Published var pageSeconds: Int { didSet { save() } }
+    @Published var hiddenHomes: [String] { didSet { save() } }
 
     private struct Stored: Codable {
         var homeName = "Home"
@@ -83,6 +84,7 @@ final class AppSettings: ObservableObject {
         var pages: [ScreenPage] = [.home, .photos, .clocks]
         var rotatePages = true
         var pageSeconds = 60
+        var hiddenHomes: [String] = []
     }
 
     private let key = "settings.v1"
@@ -110,6 +112,7 @@ final class AppSettings: ObservableObject {
         pages = s.pages.isEmpty ? [.home] : s.pages
         rotatePages = s.rotatePages
         pageSeconds = s.pageSeconds
+        hiddenHomes = s.hiddenHomes
         loading = false
     }
 
@@ -119,7 +122,7 @@ final class AppSettings: ObservableObject {
                        contactName: contactName, contactAddress: contactAddress, audioOnly: audioOnly,
                        nightFrom: nightFrom, nightTo: nightTo, hourlyChime: hourlyChime,
                        readMessages: readMessages, feeds: feeds, slideSeconds: slideSeconds,
-                       pages: pages, rotatePages: rotatePages, pageSeconds: pageSeconds)
+                       pages: pages, rotatePages: rotatePages, pageSeconds: pageSeconds, hiddenHomes: hiddenHomes)
         if let data = try? JSONEncoder().encode(s) {
             UserDefaults.standard.set(data, forKey: key)
         }
