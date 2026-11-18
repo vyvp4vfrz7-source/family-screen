@@ -1,0 +1,52 @@
+name: Screenshots
+on:
+  workflow_dispatch:
+jobs:
+  shots:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build for iPad simulator
+        run: |
+          set +e
+          xcodebuild -project FamilyScreen.xcodeproj -target FamilyScreen -sdk iphonesimulator \
+            -configuration Debug CODE_SIGNING_ALLOWED=NO build SYMROOT=$PWD/build > build.log 2>&1
+          status=$?
+          grep -E "error:|BUILD (SUCCEEDED|FAILED)" build.log | sort -u | head -80
+          exit $status
+      - name: Boot an iPad
+        run: |
+          xcrun simctl list devices available | grep -i ipad
+          UDID=$(xcrun simctl list devices available | grep -iE "iPad (Air|\(|[0-9])" | head -1 | grep -oE '[0-9A-F-]{36}')
+          [ -z "$UDID" ] && UDID=$(xcrun simctl list devices available | grep -i ipad | head -1 | grep -oE '[0-9A-F-]{36}')
+          echo "UDID=$UDID" >> $GITHUB_ENV
+          xcrun simctl boot $UDID
+          xcrun simctl bootstatus $UDID -b
+      - name: Run and capture
+        run: |
+          APP=build/Debug-iphonesimulator/FamilyScreen.app
+          BID=$(/usr/libexec/PlistBuddy -c "Print CFBundleIdentifier" $APP/Info.plist)
+          xcrun simctl install $UDID $APP
+          xcrun simctl privacy $UDID grant calendar $BID || true
+          xcrun simctl status_bar $UDID override --time 9:41 || true
+          mkdir -p shots
+          for orient in portrait landscape; do
+            ARGS="-demoData"; [ $orient = landscape ] && ARGS="-demoData -landscape"
+            xcrun simctl launch $UDID $BID $ARGS
+            sleep 12
+            for page in 1-home 2-photos 3-clocks 4-calendar 5-news; do
+              xcrun simctl io $UDID screenshot shots/$orient-$page.png
+              sleep 20
+            done
+            xcrun simctl terminate $UDID $BID
+          done
+          ls shots
+      - uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: shots
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: build-log
+          path: build.log

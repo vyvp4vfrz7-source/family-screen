@@ -12,7 +12,11 @@ struct FamilyScreenApp: App {
         WindowGroup {
             DashboardView()
                 .preferredColorScheme(.dark)
-                .onAppear { UIApplication.shared.isIdleTimerDisabled = true }  // keep the screen on
+                .onAppear {
+                    UIApplication.shared.isIdleTimerDisabled = true  // keep the screen on
+                    Demo.seedIfNeeded()
+                    Demo.rotateIfNeeded()
+                }
         }
     }
 }
