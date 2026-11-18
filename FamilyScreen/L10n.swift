@@ -53,6 +53,7 @@ enum L: String {
     case voice, hourlyChime, readMessages, readNow, feeds, addFeed, feedURL
     case familySync, inviteHome, syncOff, slideshow, seconds, newMessageFrom, newPhotoFrom
     case itIs, degrees, calendarDenied, noPhotos, delete, photoNote
+    case pages, pageHome, pagePhotos, pageClocks, rotatePages, everyPage
 
     private static let table: [L: [AppLanguage: String]] = [
         .addPhoto: [.english: "Add photo", .cantonese: "加相", .mandarin: "添加照片", .hindi: "फ़ोटो जोड़ें", .polish: "Dodaj zdjęcie"],
@@ -108,6 +109,12 @@ enum L: String {
         .noPhotos: [.english: "Tap + to add the first family photo", .cantonese: "撳 + 加第一張相", .mandarin: "点 + 添加第一张照片", .hindi: "पहली फ़ोटो जोड़ने के लिए + दबाएँ", .polish: "Stuknij +, aby dodać pierwsze zdjęcie"],
         .delete: [.english: "Delete", .cantonese: "刪除", .mandarin: "删除", .hindi: "हटाएँ", .polish: "Usuń"],
         .photoNote: [.english: "Note with the photo", .cantonese: "相片留言", .mandarin: "照片留言", .hindi: "फ़ोटो के साथ नोट", .polish: "Notatka do zdjęcia"],
+        .pages: [.english: "Pages", .cantonese: "頁面", .mandarin: "页面", .hindi: "पेज", .polish: "Strony"],
+        .pageHome: [.english: "Home", .cantonese: "主頁", .mandarin: "主页", .hindi: "होम", .polish: "Start"],
+        .pagePhotos: [.english: "Photos (full screen)", .cantonese: "相片（全螢幕）", .mandarin: "照片（全屏）", .hindi: "फ़ोटो (पूरी स्क्रीन)", .polish: "Zdjęcia (pełny ekran)"],
+        .pageClocks: [.english: "Big clocks and weather", .cantonese: "大時鐘同天氣", .mandarin: "大时钟和天气", .hindi: "बड़ी घड़ियाँ और मौसम", .polish: "Duże zegary i pogoda"],
+        .rotatePages: [.english: "Change page automatically", .cantonese: "自動轉頁", .mandarin: "自动翻页", .hindi: "अपने आप पेज बदलें", .polish: "Zmieniaj strony automatycznie"],
+        .everyPage: [.english: "Every", .cantonese: "每", .mandarin: "每", .hindi: "हर", .polish: "Co"],
     ]
 
     func text(_ lang: AppLanguage) -> String {

@@ -12,6 +12,7 @@ struct DashboardView: View {
     @State private var wakeUntil = Date.distantPast
     @State private var lastChimeHour = -1
     @State private var sheet: SheetRoute?
+    @State private var pageIndex = 0
 
     enum SheetRoute: Identifiable {
         case settings, addPhoto, article(URL)
@@ -61,33 +62,61 @@ struct DashboardView: View {
     }
 
     private var dashboard: some View {
+        VStack(spacing: 12) {
+            TabView(selection: $pageIndex) {
+                ForEach(Array(settings.pages.enumerated()), id: \.element) { i, page in
+                    pageView(page).tag(i)
+                }
+            }
+            .tabViewStyle(.page(indexDisplayMode: settings.pages.count > 1 ? .always : .never))
+            .task(id: "\(pageIndex)-\(settings.rotatePages)-\(settings.pageSeconds)-\(settings.pages.count)") {
+                // Restarts after every swipe, so a page you swiped to stays for the full time.
+                guard settings.rotatePages, settings.pages.count > 1 else { return }
+                try? await Task.sleep(nanoseconds: UInt64(max(settings.pageSeconds, 10)) * 1_000_000_000)
+                guard !Task.isCancelled else { return }
+                withAnimation { pageIndex = (pageIndex + 1) % settings.pages.count }
+            }
+            HStack(spacing: 12) {
+                CallOrb { sheet = .settings }
+                NewsStrip(headlines: news.headlines) { sheet = .article($0) }
+                toolButtons
+            }
+            .frame(height: 84)
+        }
+        .padding(12)
+        .onChange(of: settings.pages) { _ in pageIndex = 0 }
+    }
+
+    @ViewBuilder
+    private func pageView(_ page: ScreenPage) -> some View {
+        switch page {
+        case .home: homePage.padding(.bottom, 24)
+        case .photos: PhotoPanel(onAdd: { sheet = .addPhoto }).padding(.bottom, 24)
+        case .clocks: ClocksPage(weatherA: weatherA, weatherB: weatherB).padding(.bottom, 24)
+        case .calendar: CalendarCard(feed: calendar, limit: 10, large: true).padding(.bottom, 24)
+        case .news: NewsPage(headlines: news.headlines) { sheet = .article($0) }.padding(.bottom, 24)
+        }
+    }
+
+    private var homePage: some View {
         GeometryReader { geo in
             let landscape = geo.size.width > geo.size.height
             let layout = landscape ? AnyLayoutBox.horizontal : AnyLayoutBox.vertical
-            VStack(spacing: 12) {
-                layout.stack {
-                    PhotoPanel(onAdd: { sheet = .addPhoto })
-                        .frame(width: landscape ? geo.size.width * 0.52 : nil,
-                               height: landscape ? nil : geo.size.height * 0.42)
-                    VStack(spacing: 12) {
-                        HStack(spacing: 12) {
-                            CityCard(city: settings.cityA, weather: weatherA)
-                            CityCard(city: settings.cityB, weather: weatherB)
-                        }
-                        .frame(height: 170)
-                        MessageBoard()
-                        CalendarCard(feed: calendar)
-                            .frame(height: landscape ? 150 : 180)
+            layout.stack {
+                PhotoPanel(onAdd: { sheet = .addPhoto })
+                    .frame(width: landscape ? geo.size.width * 0.52 : nil,
+                           height: landscape ? nil : geo.size.height * 0.42)
+                VStack(spacing: 12) {
+                    HStack(spacing: 12) {
+                        CityCard(city: settings.cityA, weather: weatherA)
+                        CityCard(city: settings.cityB, weather: weatherB)
                     }
+                    .frame(height: 170)
+                    MessageBoard()
+                    CalendarCard(feed: calendar)
+                        .frame(height: landscape ? 150 : 180)
                 }
-                HStack(spacing: 12) {
-                    CallOrb { sheet = .settings }
-                    NewsStrip(headlines: news.headlines) { sheet = .article($0) }
-                    toolButtons
-                }
-                .frame(height: 84)
             }
-            .padding(12)
         }
     }
 

@@ -31,7 +31,7 @@ final class CalendarFeed: ObservableObject {
         events = store.events(matching: predicate)
             .filter { $0.endDate > Date() }
             .sorted { $0.startDate < $1.startDate }
-            .prefix(6)
+            .prefix(12)
             .map { UpcomingEvent(id: $0.eventIdentifier ?? UUID().uuidString, title: $0.title ?? "",
                                  start: $0.startDate, allDay: $0.isAllDay) }
     }

@@ -49,6 +49,19 @@ struct SettingsView: View {
                     }
                 }
 
+                Section(header: Text(settings.t(.pages))) {
+                    ForEach(ScreenPage.allCases) { page in
+                        Toggle(settings.t(page.title), isOn: Binding(
+                            get: { settings.pages.contains(page) },
+                            set: { settings.togglePage(page, on: $0) }))
+                    }
+                    Toggle(settings.t(.rotatePages), isOn: $settings.rotatePages)
+                    if settings.rotatePages {
+                        Stepper("\(settings.t(.everyPage)) \(settings.pageSeconds) \(settings.t(.seconds))",
+                                value: $settings.pageSeconds, in: 10...600, step: 10)
+                    }
+                }
+
                 Section(header: Text(settings.t(.slideshow))) {
                     Stepper("\(settings.slideSeconds) \(settings.t(.seconds))",
                             value: $settings.slideSeconds, in: 5...120, step: 5)

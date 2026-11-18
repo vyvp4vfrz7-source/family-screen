@@ -29,6 +29,21 @@ struct NewsFeed: Codable, Equatable, Identifiable {
     var url: String
 }
 
+/// Pages the screen can show. Families pick which ones and swipe or auto-rotate between them.
+enum ScreenPage: String, CaseIterable, Codable, Identifiable {
+    case home, photos, clocks, calendar, news
+    var id: String { rawValue }
+    var title: L {
+        switch self {
+        case .home: return .pageHome
+        case .photos: return .pagePhotos
+        case .clocks: return .pageClocks
+        case .calendar: return .calendar
+        case .news: return .news
+        }
+    }
+}
+
 /// Settings for this one iPad. Stored on the device only.
 @MainActor
 final class AppSettings: ObservableObject {
@@ -47,6 +62,9 @@ final class AppSettings: ObservableObject {
     @Published var readMessages: Bool { didSet { save() } }
     @Published var feeds: [NewsFeed] { didSet { save() } }
     @Published var slideSeconds: Int { didSet { save() } }
+    @Published var pages: [ScreenPage] { didSet { save() } }
+    @Published var rotatePages: Bool { didSet { save() } }
+    @Published var pageSeconds: Int { didSet { save() } }
 
     private struct Stored: Codable {
         var homeName = "Home"
@@ -62,6 +80,9 @@ final class AppSettings: ObservableObject {
         var readMessages = true
         var feeds: [NewsFeed] = []
         var slideSeconds = 15
+        var pages: [ScreenPage] = [.home, .photos, .clocks]
+        var rotatePages = true
+        var pageSeconds = 60
     }
 
     private let key = "settings.v1"
@@ -86,6 +107,9 @@ final class AppSettings: ObservableObject {
         readMessages = s.readMessages
         feeds = s.feeds
         slideSeconds = s.slideSeconds
+        pages = s.pages.isEmpty ? [.home] : s.pages
+        rotatePages = s.rotatePages
+        pageSeconds = s.pageSeconds
         loading = false
     }
 
@@ -94,9 +118,18 @@ final class AppSettings: ObservableObject {
         let s = Stored(homeName: homeName, language: language, cityA: cityA, cityB: cityB,
                        contactName: contactName, contactAddress: contactAddress, audioOnly: audioOnly,
                        nightFrom: nightFrom, nightTo: nightTo, hourlyChime: hourlyChime,
-                       readMessages: readMessages, feeds: feeds, slideSeconds: slideSeconds)
+                       readMessages: readMessages, feeds: feeds, slideSeconds: slideSeconds,
+                       pages: pages, rotatePages: rotatePages, pageSeconds: pageSeconds)
         if let data = try? JSONEncoder().encode(s) {
             UserDefaults.standard.set(data, forKey: key)
+        }
+    }
+
+    func togglePage(_ page: ScreenPage, on: Bool) {
+        if on, !pages.contains(page) {
+            pages = ScreenPage.allCases.filter { pages.contains($0) || $0 == page }
+        } else if !on, pages.count > 1 {
+            pages.removeAll { $0 == page }
         }
     }
 

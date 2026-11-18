@@ -170,6 +170,8 @@ struct MessageBoard: View {
 
 struct CalendarCard: View {
     @ObservedObject var feed: CalendarFeed
+    var limit = 4
+    var large = false
     @ObservedObject private var settings = AppSettings.shared
 
     var body: some View {
@@ -179,12 +181,13 @@ struct CalendarCard: View {
             } else if feed.events.isEmpty {
                 Text(settings.t(.noEvents)).foregroundColor(.secondary)
             } else {
-                ForEach(feed.events.prefix(4)) { e in
+                ForEach(feed.events.prefix(limit)) { e in
                     HStack {
-                        Text(when(e)).font(.subheadline.bold()).foregroundColor(.accentColor)
-                            .frame(width: 130, alignment: .leading)
-                        Text(e.title).lineLimit(1)
+                        Text(when(e)).font(large ? .title2.bold() : .subheadline.bold()).foregroundColor(.accentColor)
+                            .frame(width: large ? 260 : 130, alignment: .leading)
+                        Text(e.title).font(large ? .title2 : .body).lineLimit(1)
                     }
+                    .padding(.vertical, large ? 6 : 0)
                 }
             }
         }
@@ -359,6 +362,82 @@ struct AddPhotoView: View {
         } else {
             PhotoPicker { picked in
                 if let picked = picked { image = picked } else { dismiss() }
+            }
+        }
+    }
+}
+
+// MARK: - Big clocks page
+
+struct ClocksPage: View {
+    var weatherA: WeatherNow?
+    var weatherB: WeatherNow?
+    @ObservedObject private var settings = AppSettings.shared
+
+    var body: some View {
+        GeometryReader { geo in
+            let layout = geo.size.width > geo.size.height ? AnyLayoutBox.horizontal : AnyLayoutBox.vertical
+            layout.stack {
+                bigCity(settings.cityA, weatherA)
+                bigCity(settings.cityB, weatherB)
+            }
+        }
+    }
+
+    private func bigCity(_ city: City, _ weather: WeatherNow?) -> some View {
+        Card {
+            VStack(spacing: 10) {
+                Text(city.name).font(.system(size: 40, weight: .bold)).foregroundColor(.accentColor)
+                TimelineView(.everyMinute) { context in
+                    VStack(spacing: 6) {
+                        Text(Format.time(context.date, city: city, language: settings.language))
+                            .font(.system(size: 110, weight: .bold, design: .rounded)).monospacedDigit()
+                            .minimumScaleFactor(0.4).lineLimit(1)
+                        Text(Format.string(context.date, template: "EEEEdMMMM", city: city, language: settings.language))
+                            .font(.title).foregroundColor(.secondary)
+                    }
+                }
+                if let w = weather {
+                    HStack(spacing: 16) {
+                        Image(systemName: w.symbol).symbolRenderingMode(.multicolor).font(.system(size: 64))
+                        Text("\(Int(w.temperature.rounded()))°").font(.system(size: 64, weight: .bold))
+                    }
+                    if let hi = w.high, let lo = w.low {
+                        Text("↑\(Int(hi.rounded()))°  ↓\(Int(lo.rounded()))°").font(.title).foregroundColor(.secondary)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+}
+
+// MARK: - News list page
+
+struct NewsPage: View {
+    var headlines: [Headline]
+    var open: (URL) -> Void
+    @ObservedObject private var settings = AppSettings.shared
+
+    var body: some View {
+        Card(title: settings.t(.news)) {
+            if headlines.isEmpty {
+                Text(settings.t(.noFeeds)).font(.title3).foregroundColor(.secondary)
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        ForEach(headlines.prefix(12)) { h in
+                            Button { open(h.link) } label: {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(h.source).font(.subheadline.bold()).foregroundColor(.accentColor)
+                                    Text(h.title).font(.title3.weight(.semibold)).foregroundColor(.white)
+                                        .multilineTextAlignment(.leading)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                        }
+                    }
+                }
             }
         }
     }
