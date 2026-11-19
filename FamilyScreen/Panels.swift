@@ -17,8 +17,12 @@ struct PhotoPanel: View {
         ZStack(alignment: .bottomLeading) {
             RoundedRectangle(cornerRadius: 24).fill(Color.white.opacity(0.05))
             if let image = image {
-                Image(uiImage: image).resizable().scaledToFill().blur(radius: 30).opacity(0.5)
+                // Color.clear takes the panel's size, so the filled image can't grow past it.
+                Color.clear
+                    .overlay(Image(uiImage: image).resizable().scaledToFill().blur(radius: 30).opacity(0.5))
+                    .clipped()
                 Image(uiImage: image).resizable().scaledToFit()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 Text(settings.t(.noPhotos)).font(.title3).foregroundColor(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
