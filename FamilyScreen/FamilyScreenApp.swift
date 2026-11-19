@@ -10,10 +10,17 @@ struct FamilyScreenApp: App {
 
     var body: some Scene {
         WindowGroup {
-            DashboardView()
+            Group {
+                if UIDevice.current.userInterfaceIdiom == .phone {
+                    PhoneHomeView()
+                } else {
+                    DashboardView()
+                }
+            }
                 .preferredColorScheme(.dark)
                 .onAppear {
-                    UIApplication.shared.isIdleTimerDisabled = true  // keep the screen on
+                    // Keep the wall screen on. A phone sleeps as usual.
+                    UIApplication.shared.isIdleTimerDisabled = UIDevice.current.userInterfaceIdiom != .phone
                     Demo.seedIfNeeded()
                     Demo.rotateIfNeeded()
                 }

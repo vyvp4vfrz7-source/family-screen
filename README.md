@@ -26,6 +26,21 @@ With a free Apple ID the app works on one iPad on its own and must be re-run fro
 6. The other home installs the app, signs in to iCloud, and taps the link once. Both screens now share photos and messages; new items pop up within 30 seconds.
 7. Once everyone has joined you can switch the link off. Settings also lists family members (remove one), and has Leave / Delete family.
 
+### Sending photos from an iPhone (Share ▸ Family Screen)
+
+The app also runs on iPhone as the "sender", with a Share Extension so photos can be sent from Photos, WhatsApp and other apps.
+
+1. In Signing & Capabilities, pick your team for **both** targets: `FamilyScreen` and `ShareExtension` (bundle ID = app ID + `.share`).
+2. Both targets need the **App Groups** capability with `group.<your bundle id>` and the same iCloud container `iCloud.<your bundle id>`. The entitlements files already list them; if Xcode shows a red error, press **+** to register the group / tick the container.
+3. Run on the iPhone once, sign in to iCloud and tap the family's invite link (or be the person who made the family with the same Apple ID). After that, Share ▸ Family Screen sends straight to the family. If it can't send yet, the photo waits and the app sends it next time it opens.
+
+### Photos: limits, shared albums and frames
+
+- Every shared copy is at most 2048 px and re-encoded, so location and other EXIF data are removed.
+- A family keeps up to 300 photos; unpinned photos are removed after 90 days. Press and hold a photo ▸ **Keep** to pin it.
+- Settings ▸ Photos ▸ **iCloud Shared Album** shows an album this iPad already follows, next to the family photos (asks for Photos access; nothing is uploaded).
+- Settings ▸ Photos: frame (polaroid with the note, white mat, gold Chinese), slow pan and zoom, festival themes (Christmas, Lunar New Year, and "birthday" events in today's calendar).
+
 Before the App Store: set `SUPPORT_EMAIL` and `PRIVACY_URL` in `Config/Signing.xcconfig`. The policy text is `docs/privacy.html`; App Store Connect answers are in `docs/app-store-privacy.md`.
 
 Each family's data stays in their own iCloud. There is no server and no shared key.
@@ -37,9 +52,14 @@ Each family's data stays in their own iCloud. There is no server and no shared k
 | `FamilyScreen/DashboardView.swift` | The main screen, refresh loop, night mode, hourly chime |
 | `FamilyScreen/Panels.swift` | Photo slideshow, city cards, message board, calendar, FaceTime orb, news, pop-up |
 | `FamilyScreen/SettingsView.swift` | Settings and the invite button |
-| `FamilyScreen/FamilyStore.swift` | Photos and messages on the iPad |
-| `FamilyScreen/CloudSync.swift` | CloudKit sync and sharing between homes |
+| `FamilyScreen/FamilyStore.swift` | Photos and messages on the iPad, outbox, 300/90-day limits |
+| `Shared/FamilyModels.swift` | Photo/message types, app group, outbox, clean 2048 px copies (shared with the extension) |
+| `ShareExtension/ShareViewController.swift` | Share ▸ Family Screen |
+| `FamilyScreen/SharedAlbum.swift` | iCloud Shared Album source and Settings picker |
+| `FamilyScreen/PhotoFrames.swift` | Frames, pan and zoom, festival themes, setup card |
+| `FamilyScreen/PhoneHomeView.swift` | iPhone screen |
+| `Shared/CloudSync.swift` | CloudKit sync and sharing between homes |
 | `FamilyScreen/Weather.swift` | WeatherKit (iPadOS 16+) or Open-Meteo |
-| `FamilyScreen/L10n.swift` | All words in every language |
+| `Shared/L10n.swift` | All words in every language |
 
 Every push is compiled on GitHub's Mac runners (Actions ▸ Build) to catch errors before you open Xcode.

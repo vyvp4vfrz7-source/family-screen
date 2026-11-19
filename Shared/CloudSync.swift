@@ -19,11 +19,19 @@ final class CloudSync {
     }
 
     let container: CKContainer
-    private let defaults = UserDefaults.standard
+    /// Kept in the app group, so the Share Extension writes to the same zone.
+    private let defaults = AppGroup.defaults
 
     init() {
         let id = Bundle.main.object(forInfoDictionaryKey: "FamilyCloudContainer") as? String ?? ""
         container = CKContainer(identifier: id)
+        // Older builds kept these in the app's own defaults.
+        if defaults !== UserDefaults.standard, !defaults.bool(forKey: "cloud.migrated") {
+            for key in ["cloud.isGuest", "cloud.zoneName", "cloud.zoneOwner", "cloud.zoneReady", "cloud.token"] {
+                if let value = UserDefaults.standard.object(forKey: key) { defaults.set(value, forKey: key) }
+            }
+            defaults.set(true, forKey: "cloud.migrated")
+        }
     }
 
     // MARK: - Which zone this iPad uses
@@ -94,7 +102,15 @@ final class CloudSync {
         record["note"] = photo.note
         record["author"] = photo.author
         record["date"] = photo.date
+        record["pinned"] = photo.pinned ? 1 : 0
         record["image"] = CKAsset(fileURL: imageURL)
+        try await saveRecords([record])
+    }
+
+    /// Only the pinned field is sent.
+    func savePinned(photoID: String, pinned: Bool) async throws {
+        let record = CKRecord(recordType: "Photo", recordID: CKRecord.ID(recordName: photoID, zoneID: zoneID))
+        record["pinned"] = pinned ? 1 : 0
         try await saveRecords([record])
     }
 
@@ -117,6 +133,13 @@ final class CloudSync {
 
     func delete(_ id: String) async throws {
         _ = try await database.modifyRecords(saving: [], deleting: [CKRecord.ID(recordName: id, zoneID: zoneID)])
+    }
+
+    /// Removes expired photos. Another iPad may already have removed some, so errors are ignored.
+    func deleteQuietly(_ ids: [String]) async {
+        guard !ids.isEmpty else { return }
+        let recordIDs = ids.map { CKRecord.ID(recordName: $0, zoneID: zoneID) }
+        _ = try? await database.modifyRecords(saving: [], deleting: recordIDs, savePolicy: .changedKeys, atomically: false)
     }
 
     private func saveRecords(_ records: [CKRecord]) async throws {
@@ -149,6 +172,7 @@ final class CloudSync {
             changeToken = result.changeToken
             more = result.moreComing
         }
+        defaults.set(true, forKey: AppGroup.cloudReadyKey)   // the Share Extension may now upload
         return changes
     }
 
@@ -158,7 +182,8 @@ final class CloudSync {
         let date = record["date"] as? Date ?? record.creationDate ?? Date()
         switch record.recordType {
         case "Photo":
-            changes.photos.append(FamilyPhoto(id: id, note: record["note"] as? String ?? "", author: author, date: date))
+            changes.photos.append(FamilyPhoto(id: id, note: record["note"] as? String ?? "", author: author, date: date,
+                                              pinned: (record["pinned"] as? Int ?? 0) == 1))
             if let asset = record["image"] as? CKAsset, let url = asset.fileURL { changes.assetFiles[id] = url }
         case "Message":
             changes.messages.append(FamilyMessage(id: id, text: record["text"] as? String ?? "", author: author,
@@ -242,6 +267,7 @@ final class CloudSync {
         isGuest = false
         zoneReady = false
         changeToken = nil
+        defaults.removeObject(forKey: AppGroup.cloudReadyKey)
         defaults.removeObject(forKey: "cloud.zoneName")
         defaults.removeObject(forKey: "cloud.zoneOwner")
     }

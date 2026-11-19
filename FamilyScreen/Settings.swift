@@ -44,6 +44,20 @@ enum ScreenPage: String, CaseIterable, Codable, Identifiable {
     }
 }
 
+/// How photos are framed on the screen.
+enum FrameStyle: String, CaseIterable, Codable, Identifiable {
+    case plain, polaroid, whiteMat, goldChinese
+    var id: String { rawValue }
+    var title: L {
+        switch self {
+        case .plain: return .framePlain
+        case .polaroid: return .framePolaroid
+        case .whiteMat: return .frameMat
+        case .goldChinese: return .frameGold
+        }
+    }
+}
+
 /// Settings for this one iPad. Stored on the device only.
 @MainActor
 final class AppSettings: ObservableObject {
@@ -66,6 +80,11 @@ final class AppSettings: ObservableObject {
     @Published var rotatePages: Bool { didSet { save() } }
     @Published var pageSeconds: Int { didSet { save() } }
     @Published var hiddenHomes: [String] { didSet { save() } }
+    /// Local identifier of the iCloud Shared Album shown with the family photos ("" = none).
+    @Published var sharedAlbumID: String { didSet { save() } }
+    @Published var frameStyle: FrameStyle { didSet { save() } }
+    @Published var festivalThemes: Bool { didSet { save() } }
+    @Published var panZoom: Bool { didSet { save() } }
 
     private struct Stored: Codable {
         var homeName = "Home"
@@ -85,6 +104,11 @@ final class AppSettings: ObservableObject {
         var rotatePages = true
         var pageSeconds = 60
         var hiddenHomes: [String] = []
+        // Added later: optional so older saved settings still load.
+        var sharedAlbumID: String?
+        var frameStyle: FrameStyle?
+        var festivalThemes: Bool?
+        var panZoom: Bool?
     }
 
     private let key = "settings.v1"
@@ -113,7 +137,12 @@ final class AppSettings: ObservableObject {
         rotatePages = s.rotatePages
         pageSeconds = s.pageSeconds
         hiddenHomes = s.hiddenHomes
+        sharedAlbumID = s.sharedAlbumID ?? ""
+        frameStyle = s.frameStyle ?? .polaroid
+        festivalThemes = s.festivalThemes ?? true
+        panZoom = s.panZoom ?? true
         loading = false
+        shareWithExtension()
     }
 
     private func save() {
@@ -122,10 +151,19 @@ final class AppSettings: ObservableObject {
                        contactName: contactName, contactAddress: contactAddress, audioOnly: audioOnly,
                        nightFrom: nightFrom, nightTo: nightTo, hourlyChime: hourlyChime,
                        readMessages: readMessages, feeds: feeds, slideSeconds: slideSeconds,
-                       pages: pages, rotatePages: rotatePages, pageSeconds: pageSeconds, hiddenHomes: hiddenHomes)
+                       pages: pages, rotatePages: rotatePages, pageSeconds: pageSeconds, hiddenHomes: hiddenHomes,
+                       sharedAlbumID: sharedAlbumID, frameStyle: frameStyle, festivalThemes: festivalThemes,
+                       panZoom: panZoom)
         if let data = try? JSONEncoder().encode(s) {
             UserDefaults.standard.set(data, forKey: key)
         }
+        shareWithExtension()
+    }
+
+    /// The Share Extension signs photos with this home's name and speaks its language.
+    private func shareWithExtension() {
+        AppGroup.defaults.set(homeName, forKey: AppGroup.homeNameKey)
+        AppGroup.defaults.set(language.rawValue, forKey: AppGroup.languageKey)
     }
 
     func togglePage(_ page: ScreenPage, on: Bool) {

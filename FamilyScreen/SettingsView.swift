@@ -61,9 +61,15 @@ struct SettingsView: View {
                     }
                 }
 
-                Section(header: Text(settings.t(.slideshow))) {
-                    Stepper("\(settings.slideSeconds) \(settings.t(.seconds))",
+                Section(header: Text(settings.t(.photosSection)), footer: Text(settings.t(.setupPrivacy))) {
+                    Stepper("\(settings.t(.slideshow)): \(settings.slideSeconds) \(settings.t(.seconds))",
                             value: $settings.slideSeconds, in: 5...120, step: 5)
+                    Picker(settings.t(.frame), selection: $settings.frameStyle) {
+                        ForEach(FrameStyle.allCases) { Text(settings.t($0.title)).tag($0) }
+                    }
+                    Toggle(settings.t(.panZoom), isOn: $settings.panZoom)
+                    Toggle(settings.t(.festivalThemes), isOn: $settings.festivalThemes)
+                    SharedAlbumPicker()
                 }
 
                 Section(header: Text(settings.t(.feeds))) {

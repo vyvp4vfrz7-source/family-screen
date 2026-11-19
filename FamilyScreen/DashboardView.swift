@@ -103,7 +103,7 @@ struct DashboardView: View {
     private func pageView(_ page: ScreenPage) -> some View {
         switch page {
         case .home: homePage.padding(.bottom, 24)
-        case .photos: PhotoPanel(onAdd: { sheet = .addPhoto }).padding(.bottom, 24)
+        case .photos: PhotoPanel(events: calendar.events, onAdd: { sheet = .addPhoto }).padding(.bottom, 24)
         case .clocks: ClocksPage(weatherA: weatherA, weatherB: weatherB).padding(.bottom, 24)
         case .calendar: CalendarCard(feed: calendar, limit: 10, large: true).padding(.bottom, 24)
         case .news: NewsPage(headlines: news.headlines) { sheet = .article($0) }.padding(.bottom, 24)
@@ -115,7 +115,7 @@ struct DashboardView: View {
             let landscape = geo.size.width > geo.size.height
             let layout = landscape ? AnyLayoutBox.horizontal : AnyLayoutBox.vertical
             layout.stack {
-                PhotoPanel(onAdd: { sheet = .addPhoto })
+                PhotoPanel(events: calendar.events, onAdd: { sheet = .addPhoto })
                     .frame(width: landscape ? geo.size.width * 0.52 : nil,
                            height: landscape ? nil : geo.size.height * 0.42)
                 VStack(spacing: 12) {

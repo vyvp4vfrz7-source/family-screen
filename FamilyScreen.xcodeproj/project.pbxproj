@@ -6,19 +6,59 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		F5000000000000000000G001 /* ShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F5000000000000000000A005 /* ShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		F5000000000000000000H002 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F5000000000000000000E002 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F5000000000000000000E003;
+			remoteInfo = ShareExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		F5000000000000000000C004 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				F5000000000000000000G001 /* ShareExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		F5000000000000000000A001 /* FamilyScreen.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FamilyScreen.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F5000000000000000000A002 /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 		F5000000000000000000A003 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		F5000000000000000000A004 /* FamilyScreen.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = FamilyScreen.entitlements; sourceTree = "<group>"; };
+		F5000000000000000000A005 /* ShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		F5000000000000000000A006 /* ShareExtension-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "ShareExtension-Info.plist"; sourceTree = "<group>"; };
+		F5000000000000000000A007 /* ShareExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ShareExtension.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		F5000000000000000000B001 /* FamilyScreen */ = {isa = PBXFileSystemSynchronizedRootGroup; path = FamilyScreen; sourceTree = "<group>"; };
+		F5000000000000000000B002 /* Shared */ = {isa = PBXFileSystemSynchronizedRootGroup; path = Shared; sourceTree = "<group>"; };
+		F5000000000000000000B003 /* ShareExtension */ = {isa = PBXFileSystemSynchronizedRootGroup; path = ShareExtension; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		F5000000000000000000C001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F5000000000000000000C006 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -32,6 +72,8 @@
 			isa = PBXGroup;
 			children = (
 				F5000000000000000000B001 /* FamilyScreen */,
+				F5000000000000000000B002 /* Shared */,
+				F5000000000000000000B003 /* ShareExtension */,
 				F5000000000000000000D003 /* Config */,
 				F5000000000000000000D002 /* Products */,
 			);
@@ -41,6 +83,7 @@
 			isa = PBXGroup;
 			children = (
 				F5000000000000000000A001 /* FamilyScreen.app */,
+				F5000000000000000000A005 /* ShareExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -51,6 +94,8 @@
 				F5000000000000000000A002 /* Signing.xcconfig */,
 				F5000000000000000000A003 /* Info.plist */,
 				F5000000000000000000A004 /* FamilyScreen.entitlements */,
+				F5000000000000000000A006 /* ShareExtension-Info.plist */,
+				F5000000000000000000A007 /* ShareExtension.entitlements */,
 			);
 			path = Config;
 			sourceTree = "<group>";
@@ -65,13 +110,16 @@
 				F5000000000000000000C002 /* Sources */,
 				F5000000000000000000C001 /* Frameworks */,
 				F5000000000000000000C003 /* Resources */,
+				F5000000000000000000C004 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				F5000000000000000000H001 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				F5000000000000000000B001 /* FamilyScreen */,
+				F5000000000000000000B002 /* Shared */,
 			);
 			name = FamilyScreen;
 			packageProductDependencies = (
@@ -79,6 +127,29 @@
 			productName = FamilyScreen;
 			productReference = F5000000000000000000A001 /* FamilyScreen.app */;
 			productType = "com.apple.product-type.application";
+		};
+		F5000000000000000000E003 /* ShareExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F5000000000000000000F004 /* Build configuration list for PBXNativeTarget "ShareExtension" */;
+			buildPhases = (
+				F5000000000000000000C005 /* Sources */,
+				F5000000000000000000C006 /* Frameworks */,
+				F5000000000000000000C007 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				F5000000000000000000B002 /* Shared */,
+				F5000000000000000000B003 /* ShareExtension */,
+			);
+			name = ShareExtension;
+			packageProductDependencies = (
+			);
+			productName = ShareExtension;
+			productReference = F5000000000000000000A005 /* ShareExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -91,6 +162,9 @@
 				LastUpgradeCheck = 1600;
 				TargetAttributes = {
 					F5000000000000000000E001 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					F5000000000000000000E003 = {
 						CreatedOnToolsVersion = 16.0;
 					};
 				};
@@ -114,12 +188,20 @@
 			projectRoot = "";
 			targets = (
 				F5000000000000000000E001 /* FamilyScreen */,
+				F5000000000000000000E003 /* ShareExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		F5000000000000000000C003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F5000000000000000000C007 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -136,7 +218,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F5000000000000000000C005 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		F5000000000000000000H001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F5000000000000000000E003 /* ShareExtension */;
+			targetProxy = F5000000000000000000H002 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		F5000000000000000000F101 /* Debug */ = {
@@ -194,7 +291,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 2;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
@@ -217,7 +314,59 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 2;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		F5000000000000000000F301 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = F5000000000000000000A002 /* Signing.xcconfig */;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = "$(SHARE_ENTITLEMENTS_$(APPLE_SERVICES))";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "Config/ShareExtension-Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(inherited).share";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		F5000000000000000000F302 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = F5000000000000000000A002 /* Signing.xcconfig */;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = "$(SHARE_ENTITLEMENTS_$(APPLE_SERVICES))";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "Config/ShareExtension-Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(inherited).share";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};
@@ -238,6 +387,15 @@
 			buildConfigurations = (
 				F5000000000000000000F201 /* Debug */,
 				F5000000000000000000F202 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F5000000000000000000F004 /* Build configuration list for PBXNativeTarget "ShareExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F5000000000000000000F301 /* Debug */,
+				F5000000000000000000F302 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
