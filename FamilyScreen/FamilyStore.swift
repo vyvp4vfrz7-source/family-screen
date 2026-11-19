@@ -1,21 +1,6 @@
 import Foundation
 import UIKit
 
-struct FamilyPhoto: Identifiable, Codable, Equatable {
-    var id: String
-    var note: String
-    var author: String
-    var date: Date
-}
-
-struct FamilyMessage: Identifiable, Codable, Equatable {
-    var id: String
-    var text: String
-    var author: String
-    var date: Date
-    var hearts: [String]
-}
-
 /// Something new from the other home, shown as a pop-up.
 struct Arrival: Identifiable, Equatable {
     enum Kind { case message, photo }
@@ -113,11 +98,12 @@ final class FamilyStore: ObservableObject {
 
     func addPhoto(_ image: UIImage, note: String) {
         let id = UUID().uuidString
-        guard let jpeg = image.resizedForSharing().jpegData(compressionQuality: 0.8) else { return }
+        guard let jpeg = PhotoPrep.jpeg(from: image) else { return }
         try? jpeg.write(to: imageURL(id), options: .atomic)
         let photo = FamilyPhoto(id: id, note: note, author: homeName, date: Date())
         photos.append(photo)
         persist()
+        enforceLimits()
         #if APPLE_SERVICES
         Task { await pushing { try await cloud.save(photo: photo, imageURL: imageURL(id)) } }
         #endif
@@ -153,6 +139,57 @@ final class FamilyStore: ObservableObject {
         #endif
     }
 
+    /// Pinned photos are kept until someone deletes them.
+    func setPinned(_ id: String, _ pinned: Bool) {
+        guard let i = photos.firstIndex(where: { $0.id == id }) else { return }
+        photos[i].pinned = pinned
+        persist()
+        #if APPLE_SERVICES
+        Task { await pushing { try await cloud.savePinned(photoID: id, pinned: pinned) } }
+        #endif
+    }
+
+    /// Removes unpinned photos older than 90 days, and the oldest unpinned
+    /// ones once the family has more than 300.
+    private func enforceLimits() {
+        let cutoff = Date().addingTimeInterval(-Double(PhotoLimits.keepDays) * 86_400)
+        let unpinned = photos.filter { !$0.pinned }.sorted { $0.date > $1.date }
+        let room = max(0, PhotoLimits.maxPhotos - (photos.count - unpinned.count))
+        let drop = unpinned.enumerated()
+            .filter { $0.offset >= room || $0.element.date < cutoff }
+            .map { $0.element.id }
+        guard !drop.isEmpty else { return }
+        photos.removeAll { drop.contains($0.id) }
+        for id in drop { try? FileManager.default.removeItem(at: imageURL(id)) }
+        persist()
+        #if APPLE_SERVICES
+        Task { await cloud.deleteQuietly(drop) }
+        #endif
+    }
+
+    /// Photos shared from the Share Extension that haven't been sent yet.
+    private func sendOutbox() async {
+        for photo in Outbox.pending() {
+            if !photos.contains(where: { $0.id == photo.id }) {
+                try? FileManager.default.removeItem(at: imageURL(photo.id))
+                try? FileManager.default.copyItem(at: Outbox.imageURL(photo.id), to: imageURL(photo.id))
+                photos.append(photo)
+                persist()
+            }
+            #if APPLE_SERVICES
+            do {
+                try await cloud.save(photo: photo, imageURL: imageURL(photo.id))
+                Outbox.remove(photo.id)
+            } catch {
+                syncStatus = error.localizedDescription
+                return   // try again on the next refresh
+            }
+            #else
+            Outbox.remove(photo.id)
+            #endif
+        }
+    }
+
     func deleteMessage(_ id: String) {
         messages.removeAll { $0.id == id }
         persist()
@@ -165,6 +202,7 @@ final class FamilyStore: ObservableObject {
 
     /// Called every 30 seconds while the screen is on.
     func refresh() async {
+        await sendOutbox()
         #if APPLE_SERVICES
         do {
             let changes = try await cloud.fetchChanges()
@@ -191,6 +229,7 @@ final class FamilyStore: ObservableObject {
             syncStatus = error.localizedDescription
         }
         #endif
+        enforceLimits()
         announceArrivals()
     }
 
@@ -223,20 +262,5 @@ final class FamilyStore: ObservableObject {
 
     private func pushing(_ work: () async throws -> Void) async {
         do { try await work(); syncStatus = "" } catch { syncStatus = error.localizedDescription }
-    }
-}
-
-extension UIImage {
-    /// Shrinks big camera photos so they upload quickly and fit old iPads.
-    func resizedForSharing(maxSide: CGFloat = 1600) -> UIImage {
-        let longest = max(size.width, size.height)
-        guard longest > maxSide else { return self }
-        let scale = maxSide / longest
-        let target = CGSize(width: size.width * scale, height: size.height * scale)
-        let format = UIGraphicsImageRendererFormat.default()
-        format.scale = 1
-        return UIGraphicsImageRenderer(size: target, format: format).image { _ in
-            draw(in: CGRect(origin: .zero, size: target))
-        }
     }
 }

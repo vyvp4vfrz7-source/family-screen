@@ -3,41 +3,50 @@ import SwiftUI
 // MARK: - Photos with notes
 
 struct PhotoPanel: View {
+    var events: [UpcomingEvent] = []
     var onAdd: () -> Void
     @ObservedObject private var store = FamilyStore.shared
     @ObservedObject private var settings = AppSettings.shared
+    @ObservedObject private var album = SharedAlbumSource.shared
     @State private var index = 0
     @State private var image: UIImage?
+    /// The slide on screen; it changes only once the next image has loaded.
+    @State private var shown: Slide?
 
-    private var current: FamilyPhoto? {
-        store.shownPhotos.isEmpty ? nil : store.shownPhotos[index % store.shownPhotos.count]
+    /// Family photos and the chosen shared album, newest first.
+    private var slides: [Slide] {
+        (store.shownPhotos.map(Slide.family) + album.items.map(Slide.album)).sorted { $0.date > $1.date }
+    }
+
+    private var current: Slide? {
+        let all = slides
+        return all.isEmpty ? nil : all[index % all.count]
+    }
+
+    private var festival: Festival? {
+        settings.festivalThemes ? Festival.on(Date(), events: events) : nil
     }
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
             RoundedRectangle(cornerRadius: 24).fill(Color.white.opacity(0.05))
-            if let image = image {
+            if let image = image, let slide = shown, !slides.isEmpty {
                 // Color.clear takes the panel's size, so the filled image can't grow past it.
                 Color.clear
                     .overlay(Image(uiImage: image).resizable().scaledToFill().blur(radius: 30).opacity(0.5))
                     .clipped()
-                Image(uiImage: image).resizable().scaledToFit()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                Text(settings.t(.noPhotos)).font(.title3).foregroundColor(.secondary)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                FramedPhoto(image: image, style: settings.frameStyle, caption: slide.caption,
+                            panZoom: settings.panZoom, seconds: Double(max(settings.slideSeconds, 5)),
+                            seed: abs(slide.id.hashValue % 997))
+                    .id(slide.id)
+                    .transition(.opacity)
+                caption(for: slide)
+            } else if slides.isEmpty {
+                PhotoSetupCard().frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            if let photo = current {
-                VStack(alignment: .leading, spacing: 4) {
-                    if !photo.note.isEmpty { Text(photo.note).font(.title2.weight(.semibold)) }
-                    Text("\(photo.author) · \(Format.string(photo.date, template: "dMMM", language: settings.language))")
-                        .font(.subheadline).foregroundColor(.secondary)
-                }
-                .padding(14)
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
-                .padding(14)
-            }
+            if let festival = festival { FestivalOverlay(festival: festival) }
         }
+        .animation(.easeInOut(duration: 0.8), value: shown?.id)
         .overlay(alignment: .topTrailing) {
             Button(action: onAdd) {
                 Image(systemName: "plus").font(.title.weight(.bold)).foregroundColor(.white)
@@ -48,7 +57,10 @@ struct PhotoPanel: View {
         }
         .clipShape(RoundedRectangle(cornerRadius: 24))
         .contextMenu {
-            if let photo = current {
+            if let photo = shown?.familyPhoto {
+                Button { store.setPinned(photo.id, !photo.pinned) } label: {
+                    Label(settings.t(photo.pinned ? .unpin : .pin), systemImage: photo.pinned ? "pin.slash" : "pin")
+                }
                 Button(role: .destructive) { store.deletePhoto(photo.id) } label: {
                     Label(settings.t(.delete), systemImage: "trash")
                 }
@@ -69,21 +81,49 @@ struct PhotoPanel: View {
                 if !Task.isCancelled { advance() }
             }
         }
-        .onAppear(perform: loadImage)
-        .onChange(of: store.photos) { _ in loadImage() }
+        .task(id: current?.id) { await loadImage() }
+        .onChange(of: store.photos) { _ in Task { await loadImage() } }
         .onChange(of: store.arrival) { a in
-            if a?.kind == .photo { index = 0; loadImage() }   // newest photo first
+            if a?.kind == .photo { index = 0 }   // newest photo first
         }
     }
 
-    private func advance() {
-        guard !store.shownPhotos.isEmpty else { return }
-        index = (index + 1) % store.shownPhotos.count
-        loadImage()
+    /// The note and who sent it. The polaroid frame already shows the note.
+    @ViewBuilder
+    private func caption(for slide: Slide) -> some View {
+        let note = settings.frameStyle == .polaroid ? "" : slide.caption
+        VStack(alignment: .leading, spacing: 4) {
+            if !note.isEmpty { Text(note).font(.title2.weight(.semibold)) }
+            HStack(spacing: 6) {
+                if slide.familyPhoto?.pinned == true { Image(systemName: "pin.fill") }
+                Text("\(slide.byline) · \(Format.string(slide.date, template: "dMMM", language: settings.language))")
+            }
+            .font(.subheadline).foregroundColor(.secondary)
+        }
+        .padding(12)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .padding(14)
     }
 
-    private func loadImage() {
-        image = current.flatMap { store.image(for: $0) }
+    private func advance() {
+        let count = slides.count
+        guard count > 0 else { return }
+        index = (index + 1) % count
+    }
+
+    private func loadImage() async {
+        guard let slide = current else { image = nil; shown = nil; return }
+        let next: UIImage?
+        switch slide {
+        case .family(let photo):
+            next = store.image(for: photo)
+        case .album(let item):
+            let side = UIScreen.main.nativeBounds.height
+            next = await SharedAlbumSource.shared.image(item.id, size: CGSize(width: side, height: side))
+        }
+        guard current?.id == slide.id else { return }   // moved on while loading
+        image = next
+        shown = slide
     }
 }
 

@@ -20,3 +20,6 @@ CODE_SIGN_ENTITLEMENTS = $(ENTITLEMENTS_$(APPLE_SERVICES))
 FLAG_YES = APPLE_SERVICES
 FLAG_NO =
 SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited) $(FLAG_$(APPLE_SERVICES))
+// Share Extension ("Share ▸ Family Screen"); its bundle ID is the app's ID + ".share".
+SHARE_ENTITLEMENTS_YES = Config/ShareExtension.entitlements
+SHARE_ENTITLEMENTS_NO =

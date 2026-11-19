@@ -32,6 +32,8 @@
 	<true/>
 	<key>FamilyCloudContainer</key>
 	<string>iCloud.$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>FamilyAppGroup</key>
+	<string>group.$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>SupportEmail</key>
 	<string>$(SUPPORT_EMAIL)</string>
 	<key>PrivacyPolicyURL</key>
@@ -45,7 +47,7 @@
 	<key>NSCalendarsFullAccessUsageDescription</key>
 	<string>Shows your family's upcoming events on the screen.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Lets you pick photos to share with the other home.</string>
+	<string>Shows the iCloud Shared Album you choose on the screen.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -55,6 +57,10 @@
 	<dict/>
 	<key>UIRequiresFullScreen</key>
 	<true/>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+	</array>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

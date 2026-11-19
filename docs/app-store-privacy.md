@@ -3,7 +3,7 @@
 ## App Privacy ("nutrition label")
 Data collected **by the developer**: **None**. Choose "No, we do not collect data from this app".
 
-Why that is true: photos, notes and messages go to the user's own iCloud (CloudKit private/shared database), which the developer cannot read; Apple treats this as not collected by the developer. There are no analytics, ads, accounts or servers.
+Why that is true: photos, notes and messages go to the user's own iCloud (CloudKit private/shared database), which the developer cannot read; Apple treats this as not collected by the developer. There are no analytics, ads, accounts or servers. The Share Extension and the iCloud Shared Album reader also only use the device and the user's own iCloud.
 
 ## Other questions
 - Uses encryption: only Apple's standard HTTPS → `ITSAppUsesNonExemptEncryption = NO` (already in Info.plist).
@@ -13,4 +13,4 @@ Why that is true: photos, notes and messages go to the user's own iCloud (CloudK
 - Support URL / email: set `SUPPORT_EMAIL` in `Config/Signing.xcconfig`.
 
 ## Review notes (paste into "Notes for reviewer")
-Family Screen is a wall display for a family split between two homes. To see sync, the reviewer needs two iCloud accounts: on iPad A open Settings (gear) ▸ Send invite link, open the link on iPad B. Without a second iPad, all screens work on one iPad: add a photo with +, type on the message board, swipe pages.
+Family Screen is a wall display for a family split between two homes. To see sync, the reviewer needs two iCloud accounts: on iPad A open Settings (gear) ▸ Send invite link, open the link on iPad B. Without a second iPad, all screens work on one iPad: add a photo with +, type on the message board, swipe pages. On iPhone the app is the sender: Photos ▸ Share ▸ Family Screen sends a photo to the family. Photos access is only requested if the user chooses to show an iCloud Shared Album (Settings ▸ Photos).
