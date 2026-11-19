@@ -329,9 +329,11 @@ struct TwoHomesPage: View {
 
     var body: some View {
         GeometryReader { geo in
-            let layout = geo.size.width > geo.size.height ? AnyLayoutBox.horizontal : AnyLayoutBox.vertical
+            let wide = geo.size.width > geo.size.height
+            let layout = wide ? AnyLayoutBox.horizontal : AnyLayoutBox.vertical
             layout.stack {
                 HomePanel(city: settings.cityA, weather: weatherA, other: nil, seed: 3)
+                HomesLink(vertical: wide)
                 HomePanel(city: settings.cityB, weather: weatherB, other: settings.cityA, seed: 11)
             }
         }
@@ -357,6 +359,7 @@ private struct HomePanel: View {
                                    startPoint: .top, endPoint: .bottom)
                     Skyline(seed: seed, night: night)
                         .frame(maxHeight: .infinity, alignment: .bottom)
+                    Landmarks(city: city, night: night)
                     weatherInfo
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                         .padding(18)
@@ -389,7 +392,7 @@ private struct HomePanel: View {
         if let w = weather {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 14) {
-                    CuteWeatherIcon(symbol: w.symbol, size: 110)
+                    CuteWeatherIcon(symbol: w.symbol, size: 120, windy: (w.windKmh ?? 0) >= WeatherWords.windyKmh)
                     VStack(alignment: .leading, spacing: 0) {
                         Text("\(Int(w.temperature.rounded()))°").font(.system(size: 76, weight: .bold))
                         Text(settings.t(WeatherWords.condition(for: w.symbol))).font(.title3.weight(.semibold))
@@ -473,6 +476,130 @@ private struct Skyline: View {
                     wy += 12
                 }
                 x += w + CGFloat(rng.next(in: 2...8))
+            }
+        }
+        .allowsHitTesting(false)
+    }
+}
+
+/// The strip between the two homes: a dotted flight path with a little
+/// plane flying back and forth and a beating heart in the middle.
+private struct HomesLink: View {
+    var vertical: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1 / 20, paused: reduceMotion)) { context in
+            let t = reduceMotion ? 0 : context.date.timeIntervalSinceReferenceDate
+            GeometryReader { geo in
+                let length = vertical ? geo.size.height : geo.size.width
+                // 0...1...0 across the strip, slowing at each end.
+                let p = 0.5 - 0.5 * cos(t * 0.35)
+                let goingForward = sin(t * 0.35) > 0
+                let pos = 50 + (length - 100) * CGFloat(p)
+                ZStack {
+                    Path { path in
+                        if vertical {
+                            path.move(to: CGPoint(x: geo.size.width / 2, y: 20))
+                            path.addLine(to: CGPoint(x: geo.size.width / 2, y: geo.size.height - 20))
+                        } else {
+                            path.move(to: CGPoint(x: 20, y: geo.size.height / 2))
+                            path.addLine(to: CGPoint(x: geo.size.width - 20, y: geo.size.height / 2))
+                        }
+                    }
+                    .stroke(Color.white.opacity(0.3), style: StrokeStyle(lineWidth: 3, lineCap: .round, dash: [2, 10]))
+                    Image(systemName: "heart.fill")
+                        .font(.system(size: 30))
+                        .foregroundColor(Color(red: 1, green: 0.48, blue: 0.66))
+                        .scaleEffect(CGFloat(1 + 0.12 * max(0, sin(t * 5))))
+                        .position(x: geo.size.width / 2, y: geo.size.height / 2)
+                    Image(systemName: "airplane")
+                        .font(.system(size: 30, weight: .semibold))
+                        .foregroundColor(.white)
+                        // The symbol points right; turn it to face where it is flying.
+                        .rotationEffect(.degrees(vertical ? (goingForward ? 90 : -90) : (goingForward ? 0 : 180)))
+                        .position(vertical ? CGPoint(x: geo.size.width / 2, y: pos) : CGPoint(x: pos, y: geo.size.height / 2))
+                }
+            }
+        }
+        .frame(width: vertical ? 56 : nil, height: vertical ? nil : 56)
+        .accessibilityHidden(true)
+    }
+}
+
+/// Little landmark drawings in front of the skyline for cities we know:
+/// a clock tower and big wheel for London, the Peak, a pointed tower and a
+/// junk boat for Hong Kong. Other cities just keep the plain skyline.
+private struct Landmarks: View {
+    let city: City
+    let night: Bool
+
+    var body: some View {
+        Canvas { ctx, size in
+            let w = size.width, h = size.height
+            let ink = night ? Color(red: 0.09, green: 0.1, blue: 0.2) : Color(red: 0.24, green: 0.31, blue: 0.48)
+            let glow = Color(red: 1, green: 0.85, blue: 0.45)
+            switch city.timeZoneID {
+            case "Europe/London":
+                // Clock tower.
+                let tx = w * 0.8, tw = max(w * 0.05, 18), top = h * 0.48
+                ctx.fill(Path(CGRect(x: tx, y: top, width: tw, height: h - top)), with: .color(ink))
+                var roof = Path()
+                roof.move(to: CGPoint(x: tx - 3, y: top))
+                roof.addLine(to: CGPoint(x: tx + tw / 2, y: top - tw * 1.4))
+                roof.addLine(to: CGPoint(x: tx + tw + 3, y: top))
+                ctx.fill(roof, with: .color(ink))
+                let face = CGRect(x: tx + tw * 0.15, y: top + tw * 0.4, width: tw * 0.7, height: tw * 0.7)
+                ctx.fill(Path(ellipseIn: face), with: .color(night ? glow : .white.opacity(0.8)))
+                // Big wheel.
+                let r = min(w, h) * 0.17
+                let c = CGPoint(x: w * 0.62, y: h - r - 8)
+                ctx.stroke(Path(ellipseIn: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2)), with: .color(ink), lineWidth: 4)
+                for i in 0..<8 {
+                    let a = Double(i) * .pi / 4
+                    var spoke = Path()
+                    spoke.move(to: c)
+                    spoke.addLine(to: CGPoint(x: c.x + r * CGFloat(cos(a)), y: c.y + r * CGFloat(sin(a))))
+                    ctx.stroke(spoke, with: .color(ink), lineWidth: 1.5)
+                }
+                var legs = Path()
+                legs.move(to: CGPoint(x: c.x - r * 0.5, y: h))
+                legs.addLine(to: c)
+                legs.addLine(to: CGPoint(x: c.x + r * 0.5, y: h))
+                ctx.stroke(legs, with: .color(ink), lineWidth: 4)
+            case "Asia/Hong_Kong":
+                // The Peak behind the towers.
+                var hill = Path()
+                hill.move(to: CGPoint(x: w * 0.45, y: h))
+                hill.addQuadCurve(to: CGPoint(x: w * 0.75, y: h * 0.62), control: CGPoint(x: w * 0.6, y: h * 0.6))
+                hill.addQuadCurve(to: CGPoint(x: w * 1.05, y: h), control: CGPoint(x: w * 0.92, y: h * 0.62))
+                ctx.fill(hill, with: .color(night ? Color(red: 0.1, green: 0.16, blue: 0.2) : Color(red: 0.33, green: 0.47, blue: 0.45)))
+                // Pointed tower.
+                let tx = w * 0.62, tw = max(w * 0.06, 22)
+                var tower = Path()
+                tower.move(to: CGPoint(x: tx, y: h))
+                tower.addLine(to: CGPoint(x: tx + tw * 0.5, y: h * 0.4))
+                tower.addLine(to: CGPoint(x: tx + tw, y: h))
+                ctx.fill(tower, with: .color(ink))
+                var mast = Path()
+                mast.move(to: CGPoint(x: tx + tw * 0.5, y: h * 0.4))
+                mast.addLine(to: CGPoint(x: tx + tw * 0.5, y: h * 0.33))
+                ctx.stroke(mast, with: .color(ink), lineWidth: 2)
+                // Junk boat with a red sail on the harbour.
+                let bx = w * 0.84, by = h - 6
+                var hull = Path()
+                hull.move(to: CGPoint(x: bx - 26, y: by - 10))
+                hull.addLine(to: CGPoint(x: bx + 26, y: by - 10))
+                hull.addLine(to: CGPoint(x: bx + 18, y: by))
+                hull.addLine(to: CGPoint(x: bx - 18, y: by))
+                ctx.fill(hull, with: .color(Color(red: 0.45, green: 0.28, blue: 0.2)))
+                var sail = Path()
+                sail.move(to: CGPoint(x: bx - 4, y: by - 12))
+                sail.addLine(to: CGPoint(x: bx - 4, y: by - 50))
+                sail.addQuadCurve(to: CGPoint(x: bx + 16, y: by - 12), control: CGPoint(x: bx + 22, y: by - 40))
+                ctx.fill(sail, with: .color(Color(red: 0.85, green: 0.3, blue: 0.28)))
+            default:
+                break
             }
         }
         .allowsHitTesting(false)

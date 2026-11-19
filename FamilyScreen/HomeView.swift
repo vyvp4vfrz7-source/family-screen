@@ -69,8 +69,9 @@ struct HeroCard: View {
                 VStack(alignment: .leading, spacing: 0) {
                     clock(height: h)
                     Spacer(minLength: 8)
-                    NoticePill(onEdit: onEditNotice)
-                        .frame(maxWidth: geo.size.width * 0.5, alignment: .leading)
+                    NoticePill(onEdit: onEditNotice, fontSize: max(h * 0.075, 20))
+                        .frame(maxWidth: geo.size.width * 0.46, alignment: .leading)
+                        .padding(.top, h * 0.03)
                 }
                 Spacer(minLength: 0)
                 weather(height: h)
@@ -92,7 +93,7 @@ struct HeroCard: View {
             VStack(alignment: .leading, spacing: h * 0.03) {
                 HStack(alignment: .lastTextBaseline, spacing: 6) {
                     Text(Format.time(date, city: settings.cityA, language: settings.language))
-                        .font(.system(size: h * 0.34, weight: .light)).monospacedDigit()
+                        .font(.system(size: h * 0.3, weight: .light)).monospacedDigit()
                         .lineLimit(1).minimumScaleFactor(0.4)
                     Text(Format.string(date, template: "ss", city: settings.cityA, language: settings.language))
                         .font(.system(size: h * 0.10, weight: .light)).monospacedDigit()
@@ -137,7 +138,8 @@ struct HeroCard: View {
     private func weather(height h: CGFloat) -> some View {
         VStack(alignment: .trailing, spacing: h * 0.025) {
             HStack(alignment: .center, spacing: 14) {
-                CuteWeatherIcon(symbol: weatherA?.symbol ?? "cloud.fill", size: h * 0.32)
+                CuteWeatherIcon(symbol: weatherA?.symbol ?? "cloud.fill", size: h * 0.36,
+                                windy: (weatherA?.windKmh ?? 0) >= WeatherWords.windyKmh)
                 VStack(alignment: .trailing, spacing: 0) {
                     Text(settings.cityA.name.uppercased())
                         .font(.system(size: h * 0.04, weight: .semibold)).kerning(1.5)
@@ -187,6 +189,9 @@ struct HeroCard: View {
 
 /// Turns a weather symbol name into a word like "Cloudy".
 enum WeatherWords {
+    /// Wind speed from which the wind friend replaces the usual character.
+    static let windyKmh: Double = 35
+
     static func condition(for symbol: String) -> L {
         if symbol.contains("bolt") { return .thunder }
         if symbol.contains("snow") || symbol.contains("sleet") { return .snowy }
@@ -340,25 +345,32 @@ struct SectionLabel: View {
 
 // MARK: - Family notice
 
-/// The family notice is the newest message from any home. Writing a new
-/// notice replaces it on every screen in the family.
+/// The family notice is the newest message from any home, shown as a yellow
+/// post-it note. Writing a new notice replaces it on every screen in the family.
 struct NoticePill: View {
     var onEdit: () -> Void
+    var fontSize: CGFloat = 26
     @ObservedObject private var store = FamilyStore.shared
     @ObservedObject private var settings = AppSettings.shared
 
     var body: some View {
         let notice = store.shownMessages.max { $0.date < $1.date }
         Button(action: onEdit) {
-            HStack(spacing: 8) {
-                Text("📌")
-                Text(notice?.text ?? settings.t(.noticeEmpty))
-                    .lineLimit(2).multilineTextAlignment(.leading)
-            }
-            .font(.title3.weight(.semibold))
-            .foregroundColor(notice == nil ? .white.opacity(0.6) : Theme.notice)
-            .padding(.horizontal, 18).padding(.vertical, 10)
-            .background(Capsule().fill(Color.black.opacity(0.25)))
+            Text(notice?.text ?? settings.t(.noticeEmpty))
+                .font(.custom("Noteworthy-Bold", size: fontSize))
+                .lineLimit(3).minimumScaleFactor(0.6).multilineTextAlignment(.leading)
+                .foregroundColor(Color(red: 0.3, green: 0.24, blue: 0.08).opacity(notice == nil ? 0.5 : 1))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, fontSize * 0.8).padding(.top, fontSize * 0.7).padding(.bottom, fontSize * 0.6)
+                .background(PostItPaper())
+                .overlay(alignment: .top) {
+                    // A strip of tape holding the note up.
+                    Rectangle().fill(Color.white.opacity(0.5))
+                        .frame(width: fontSize * 3, height: fontSize * 0.75)
+                        .rotationEffect(.degrees(3))
+                        .offset(y: -fontSize * 0.35)
+                }
+                .rotationEffect(.degrees(-2))
         }
         .buttonStyle(.plain)
         .contextMenu {
@@ -446,5 +458,29 @@ struct NoticeEditor: View {
         store.addMessage(text)
         draft = ""
         onDone()
+    }
+}
+
+/// Yellow post-it paper with a soft shadow and a folded-up corner.
+private struct PostItPaper: View {
+    var body: some View {
+        GeometryReader { geo in
+            let w = geo.size.width, h = geo.size.height
+            let f = min(w, h) * 0.2
+            ZStack {
+                Path { p in
+                    p.addLines([.zero, CGPoint(x: w, y: 0), CGPoint(x: w, y: h - f), CGPoint(x: w - f, y: h), CGPoint(x: 0, y: h)])
+                    p.closeSubpath()
+                }
+                .fill(LinearGradient(colors: [Color(red: 1, green: 0.93, blue: 0.5), Color(red: 1, green: 0.88, blue: 0.4)],
+                                     startPoint: .top, endPoint: .bottom))
+                .shadow(color: .black.opacity(0.3), radius: 6, x: 3, y: 5)
+                Path { p in
+                    p.addLines([CGPoint(x: w, y: h - f), CGPoint(x: w - f, y: h - f), CGPoint(x: w - f, y: h)])
+                    p.closeSubpath()
+                }
+                .fill(Color(red: 0.88, green: 0.76, blue: 0.3))
+            }
+        }
     }
 }
