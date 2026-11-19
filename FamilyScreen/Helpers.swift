@@ -2,6 +2,7 @@ import SwiftUI
 import UIKit
 import PhotosUI
 import SafariServices
+import UniformTypeIdentifiers
 
 enum Format {
     static func string(_ date: Date, template: String, city: City? = nil, language: AppLanguage) -> String {
@@ -46,6 +47,7 @@ struct PhotoPicker: UIViewControllerRepresentable {
         var config = PHPickerConfiguration()
         config.filter = .images
         config.selectionLimit = 1
+        config.preferredAssetRepresentationMode = .current   // skip HEIC→JPEG conversion, which can fail
         let vc = PHPickerViewController(configuration: config)
         vc.delegate = context.coordinator
         return vc
@@ -60,12 +62,25 @@ struct PhotoPicker: UIViewControllerRepresentable {
         init(onPick: @escaping (UIImage?) -> Void) { self.onPick = onPick }
 
         func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
-            guard let provider = results.first?.itemProvider, provider.canLoadObject(ofClass: UIImage.self) else {
+            guard let provider = results.first?.itemProvider else {
                 onPick(nil)
                 return
             }
+            // loadObject sometimes fails (HEIC, the simulator, iCloud-only photos),
+            // so fall back to reading the image file itself.
+            let fallback = {
+                provider.loadFileRepresentation(forTypeIdentifier: UTType.image.identifier) { url, _ in
+                    let image = url.flatMap { PhotoPrep.jpeg(from: $0) }.flatMap { UIImage(data: $0) }
+                    DispatchQueue.main.async { self.onPick(image) }
+                }
+            }
+            guard provider.canLoadObject(ofClass: UIImage.self) else { fallback(); return }
             provider.loadObject(ofClass: UIImage.self) { object, _ in
-                DispatchQueue.main.async { self.onPick(object as? UIImage) }
+                if let image = object as? UIImage {
+                    DispatchQueue.main.async { self.onPick(image) }
+                } else {
+                    fallback()
+                }
             }
         }
     }
