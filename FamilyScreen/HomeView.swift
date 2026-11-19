@@ -137,9 +137,7 @@ struct HeroCard: View {
     private func weather(height h: CGFloat) -> some View {
         VStack(alignment: .trailing, spacing: h * 0.025) {
             HStack(alignment: .center, spacing: 14) {
-                Image(systemName: weatherA?.symbol ?? "cloud.fill")
-                    .symbolRenderingMode(.multicolor)
-                    .font(.system(size: h * 0.26))
+                CuteWeatherIcon(symbol: weatherA?.symbol ?? "cloud.fill", size: h * 0.32)
                 VStack(alignment: .trailing, spacing: 0) {
                     Text(settings.cityA.name.uppercased())
                         .font(.system(size: h * 0.04, weight: .semibold)).kerning(1.5)
@@ -262,8 +260,7 @@ struct HourlyCard: View {
                     .font(.system(size: max(size.height * 0.1, 11), weight: .semibold))
                     .position(x: pt.x, y: pt.y - size.height * 0.1)
                 VStack(spacing: 3) {
-                    Image(systemName: hours[i].symbol).symbolRenderingMode(.multicolor)
-                        .font(.system(size: max(size.height * 0.15, 14)))
+                    CuteWeatherIcon(symbol: hours[i].symbol, size: max(size.height * 0.2, 18))
                     Text(rain(hours[i].rainChance))
                         .font(.system(size: max(size.height * 0.08, 10))).foregroundColor(Theme.rain)
                     Text(hourLabel(hours[i].time))
@@ -317,7 +314,7 @@ struct DailyCard: View {
         VStack(spacing: 6) {
             Text(Format.string(day.date, template: "EEEE", city: settings.cityA, language: settings.language))
                 .font(.headline).lineLimit(1).minimumScaleFactor(0.6)
-            Image(systemName: day.symbol).symbolRenderingMode(.multicolor).font(.title)
+            CuteWeatherIcon(symbol: day.symbol, size: 44)
             HStack(spacing: 6) {
                 Text("\(Int(day.high.rounded()))°").font(.title3.bold())
                 Text("\(Int(day.low.rounded()))°").font(.title3).foregroundColor(Theme.label)

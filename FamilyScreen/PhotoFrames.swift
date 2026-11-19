@@ -64,7 +64,8 @@ struct FramedPhoto: View {
         Group {
             switch style {
             case .plain:
-                picture
+                // Fills the whole panel, so the photo is as big as it can be.
+                KenBurnsImage(image: image, on: panZoom, seconds: seconds, seed: seed)
             case .polaroid:
                 VStack(spacing: 0) {
                     picture
