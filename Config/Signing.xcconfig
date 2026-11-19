@@ -23,3 +23,6 @@ SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited) $(FLAG_$(APPLE_SERVICES))
 // Share Extension ("Share ▸ Family Screen"); its bundle ID is the app's ID + ".share".
 SHARE_ENTITLEMENTS_YES = Config/ShareExtension.entitlements
 SHARE_ENTITLEMENTS_NO =
+
+// Your Team and bundle ID live here after running Config/save-signing.sh once.
+#include? "Local.xcconfig"
