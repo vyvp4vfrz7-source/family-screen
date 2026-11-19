@@ -167,65 +167,6 @@ struct CityCard: View {
     }
 }
 
-// MARK: - Message board (留言板)
-
-struct MessageBoard: View {
-    @ObservedObject private var store = FamilyStore.shared
-    @ObservedObject private var settings = AppSettings.shared
-    @State private var draft = ""
-
-    var body: some View {
-        Card(title: settings.t(.messages)) {
-            HStack {
-                TextField(settings.t(.typeMessage), text: $draft)
-                    .textFieldStyle(.roundedBorder).font(.title3)
-                    .submitLabel(.send).onSubmit(send)
-                Button(settings.t(.send), action: send).buttonStyle(.borderedProminent)
-            }
-            ScrollView {
-                VStack(alignment: .leading, spacing: 10) {
-                    ForEach(store.shownMessages.prefix(12)) { m in
-                        row(m)
-                    }
-                }
-            }
-        }
-    }
-
-    private func row(_ m: FamilyMessage) -> some View {
-        HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(m.text).font(.title3)
-                Text("\(m.author) · \(Format.string(m.date, template: "dMMMjmm", language: settings.language))"
-                     + (m.hearts.isEmpty ? "" : "  ❤️ " + m.hearts.joined(separator: ", ")))
-                    .font(.caption).foregroundColor(.secondary)
-            }
-            Spacer()
-            if m.author != settings.homeName && !m.hearts.contains(settings.homeName) {
-                Button(settings.t(.gotIt)) { store.heart(m.id) }.buttonStyle(.bordered)
-            }
-        }
-        .contextMenu {
-            Button(role: .destructive) { store.deleteMessage(m.id) } label: {
-                Label(settings.t(.delete), systemImage: "trash")
-            }
-            if m.author != settings.homeName {
-                Button { store.hide(author: m.author) } label: {
-                    Label(settings.t(.hidePosts), systemImage: "eye.slash")
-                }
-                Button { store.report(author: m.author, text: m.text, id: m.id) } label: {
-                    Label(settings.t(.report), systemImage: "exclamationmark.bubble")
-                }
-            }
-        }
-    }
-
-    private func send() {
-        store.addMessage(draft)
-        draft = ""
-    }
-}
-
 // MARK: - Calendar
 
 struct CalendarCard: View {

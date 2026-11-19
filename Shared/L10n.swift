@@ -60,6 +60,9 @@ enum L: String {
     case sharedAlbum, noAlbum, allowPhotos, photosDenied, pin, unpin
     case setupTitle, setupShare, setupAlbum, setupPlus, setupPrivacy
     case merryChristmas, happyLunarNewYear, shareNoPhoto, shareSent, shareLater, shareNotSetUp
+    case feelsLike, high, low, rain, wind, sunrise, sunset, next12Hours, next5Days
+    case notice, noticeEmpty, noticeHint, clearNotice, nextUp
+    case sunny, clearNight, partlyCloudy, cloudy, foggy, drizzle, rainy, snowy, thunder
 
     private static let table: [L: [AppLanguage: String]] = [
         .addPhoto: [.english: "Add photo", .cantonese: "加相", .mandarin: "添加照片", .hindi: "फ़ोटो जोड़ें", .polish: "Dodaj zdjęcie"],
@@ -160,6 +163,29 @@ enum L: String {
         .shareSent: [.english: "Sent to the family", .cantonese: "已傳畀家人", .mandarin: "已发给家人", .hindi: "परिवार को भेज दी गई", .polish: "Wysłano do rodziny"],
         .shareLater: [.english: "Saved. It will send when Family Screen next opens.", .cantonese: "已儲存，下次打開 Family Screen 就會傳出。", .mandarin: "已保存，下次打开 Family Screen 时发送。", .hindi: "सहेजी गई। Family Screen अगली बार खुलने पर भेजी जाएगी।", .polish: "Zapisano. Wyślemy przy następnym otwarciu Family Screen."],
         .shareNotSetUp: [.english: "Open Family Screen on this device once to join your family first.", .cantonese: "請先喺呢部機打開 Family Screen 一次，加入你嘅家庭。", .mandarin: "请先在这台设备上打开 Family Screen 一次，加入你的家庭。", .hindi: "पहले इस डिवाइस पर Family Screen एक बार खोलकर परिवार से जुड़ें।", .polish: "Najpierw otwórz Family Screen na tym urządzeniu i dołącz do rodziny."],
+        .feelsLike: [.english: "Feels", .cantonese: "體感", .mandarin: "体感", .hindi: "महसूस", .polish: "Odczuwalna"],
+        .high: [.english: "High", .cantonese: "高", .mandarin: "高", .hindi: "अधिकतम", .polish: "Maks."],
+        .low: [.english: "Low", .cantonese: "低", .mandarin: "低", .hindi: "न्यूनतम", .polish: "Min."],
+        .rain: [.english: "Rain", .cantonese: "落雨", .mandarin: "降雨", .hindi: "बारिश", .polish: "Deszcz"],
+        .wind: [.english: "Wind", .cantonese: "風", .mandarin: "风", .hindi: "हवा", .polish: "Wiatr"],
+        .sunrise: [.english: "Sunrise", .cantonese: "日出", .mandarin: "日出", .hindi: "सूर्योदय", .polish: "Wschód"],
+        .sunset: [.english: "Sunset", .cantonese: "日落", .mandarin: "日落", .hindi: "सूर्यास्त", .polish: "Zachód"],
+        .next12Hours: [.english: "Next 12 hours", .cantonese: "未來 12 小時", .mandarin: "未来 12 小时", .hindi: "अगले 12 घंटे", .polish: "Następne 12 godzin"],
+        .next5Days: [.english: "Next 5 days", .cantonese: "未來五日", .mandarin: "未来五天", .hindi: "अगले 5 दिन", .polish: "Następne 5 dni"],
+        .notice: [.english: "Notice", .cantonese: "告示", .mandarin: "告示", .hindi: "सूचना", .polish: "Ogłoszenie"],
+        .noticeEmpty: [.english: "Tap to add a notice", .cantonese: "撳一下寫告示", .mandarin: "点一下写告示", .hindi: "सूचना जोड़ने के लिए टैप करें", .polish: "Dotknij, aby dodać ogłoszenie"],
+        .noticeHint: [.english: "A short note for everyone, e.g. \"Dinner at 7\"", .cantonese: "寫句俾全家睇，例如「七點食飯」", .mandarin: "写一句给全家看，例如「七点吃饭」", .hindi: "सबके लिए छोटा नोट, जैसे \"7 बजे खाना\"", .polish: "Krótka wiadomość dla wszystkich, np. \"Kolacja o 19\""],
+        .clearNotice: [.english: "Clear notice", .cantonese: "清除告示", .mandarin: "清除告示", .hindi: "सूचना हटाएँ", .polish: "Usuń ogłoszenie"],
+        .nextUp: [.english: "Next", .cantonese: "下一個", .mandarin: "下一个", .hindi: "अगला", .polish: "Następne"],
+        .sunny: [.english: "Sunny", .cantonese: "天晴", .mandarin: "晴", .hindi: "धूप", .polish: "Słonecznie"],
+        .clearNight: [.english: "Clear", .cantonese: "天晴", .mandarin: "晴", .hindi: "साफ़", .polish: "Bezchmurnie"],
+        .partlyCloudy: [.english: "Partly cloudy", .cantonese: "部分時間有雲", .mandarin: "多云间晴", .hindi: "आंशिक बादल", .polish: "Częściowe zachmurzenie"],
+        .cloudy: [.english: "Cloudy", .cantonese: "多雲", .mandarin: "阴", .hindi: "बादल", .polish: "Pochmurno"],
+        .foggy: [.english: "Foggy", .cantonese: "有霧", .mandarin: "有雾", .hindi: "कोहरा", .polish: "Mgła"],
+        .drizzle: [.english: "Drizzle", .cantonese: "微雨", .mandarin: "毛毛雨", .hindi: "बूंदाबांदी", .polish: "Mżawka"],
+        .rainy: [.english: "Rain", .cantonese: "有雨", .mandarin: "有雨", .hindi: "बारिश", .polish: "Deszcz"],
+        .snowy: [.english: "Snow", .cantonese: "落雪", .mandarin: "下雪", .hindi: "बर्फ़", .polish: "Śnieg"],
+        .thunder: [.english: "Thunderstorms", .cantonese: "雷暴", .mandarin: "雷暴", .hindi: "आंधी-तूफ़ान", .polish: "Burza"],
     ]
 
     func text(_ lang: AppLanguage) -> String {

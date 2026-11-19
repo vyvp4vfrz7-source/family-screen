@@ -16,11 +16,12 @@ struct DashboardView: View {
     @State private var pageIndex = 0
 
     enum SheetRoute: Identifiable {
-        case settings, addPhoto, article(URL)
+        case settings, addPhoto, notice, article(URL)
         var id: String {
             switch self {
             case .settings: return "settings"
             case .addPhoto: return "addPhoto"
+            case .notice: return "notice"
             case .article(let url): return url.absoluteString
             }
         }
@@ -30,7 +31,7 @@ struct DashboardView: View {
 
     var body: some View {
         ZStack {
-            Color(red: 0.07, green: 0.06, blue: 0.08).ignoresSafeArea()
+            Theme.background.ignoresSafeArea()
             if isNight {
                 NightClock()
                     .contentShape(Rectangle())
@@ -59,6 +60,7 @@ struct DashboardView: View {
             switch route {
             case .settings: SettingsView()
             case .addPhoto: AddPhotoView()
+            case .notice: NoticeEditor { sheet = nil }
             case .article(let url): SafariView(url: url).ignoresSafeArea()
             }
         }
@@ -111,25 +113,8 @@ struct DashboardView: View {
     }
 
     private var homePage: some View {
-        GeometryReader { geo in
-            let landscape = geo.size.width > geo.size.height
-            let layout = landscape ? AnyLayoutBox.horizontal : AnyLayoutBox.vertical
-            layout.stack {
-                PhotoPanel(events: calendar.events, onAdd: { sheet = .addPhoto })
-                    .frame(width: landscape ? geo.size.width * 0.52 : nil,
-                           height: landscape ? nil : geo.size.height * 0.42)
-                VStack(spacing: 12) {
-                    HStack(spacing: 12) {
-                        CityCard(city: settings.cityA, weather: weatherA)
-                        CityCard(city: settings.cityB, weather: weatherB)
-                    }
-                    .frame(height: 170)
-                    MessageBoard()
-                    CalendarCard(feed: calendar)
-                        .frame(height: landscape ? 150 : 180)
-                }
-            }
-        }
+        HomePage(weatherA: weatherA, weatherB: weatherB, events: calendar.events,
+                 onAddPhoto: { sheet = .addPhoto }, onEditNotice: { sheet = .notice })
     }
 
     private var toolButtons: some View {
