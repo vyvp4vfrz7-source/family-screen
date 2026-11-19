@@ -19,7 +19,7 @@ struct PhoneHomeView: View {
                         PhotoSetupCard()
                             .background(RoundedRectangle(cornerRadius: 20).fill(Color.white.opacity(0.07)))
                     }
-                    MessageBoard().frame(height: 300)
+                    NoticeEditor(inline: true)
                     LazyVGrid(columns: columns, spacing: 6) {
                         ForEach(store.shownPhotos) { PhotoThumb(photo: $0) }
                     }
