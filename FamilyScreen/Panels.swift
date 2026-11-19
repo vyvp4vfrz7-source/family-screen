@@ -396,32 +396,50 @@ struct AddPhotoView: View {
     @ObservedObject private var settings = AppSettings.shared
     @State private var image: UIImage?
     @State private var note = ""
+    @State private var picking = false
+    @State private var asked = false
 
+    // The picker is its own sheet on top of this one. On a Mac ("Designed for
+    // iPad") the picker closes itself after a pick; if it were the root of this
+    // sheet, the whole sheet would close before the photo arrived.
     var body: some View {
-        if let image = image {
-            NavigationView {
-                VStack(spacing: 16) {
+        NavigationView {
+            VStack(spacing: 16) {
+                if let image = image {
                     Image(uiImage: image).resizable().scaledToFit().cornerRadius(16)
-                    TextField(settings.t(.addNote), text: $note)
-                        .textFieldStyle(.roundedBorder).font(.title3)
-                }
-                .padding()
-                .navigationTitle(settings.t(.photoNote))
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) { Button(settings.t(.cancel)) { dismiss() } }
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button(settings.t(.send)) {
-                            FamilyStore.shared.addPhoto(image, note: note)
-                            dismiss()
-                        }
+                } else {
+                    Button { picking = true } label: {
+                        Label(settings.t(.addPhoto), systemImage: "photo.on.rectangle")
+                            .font(.title2).frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
                 }
+                TextField(settings.t(.addNote), text: $note)
+                    .textFieldStyle(.roundedBorder).font(.title3)
             }
-            .navigationViewStyle(.stack)
-        } else {
+            .padding()
+            .navigationTitle(settings.t(.photoNote))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button(settings.t(.cancel)) { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(settings.t(.send)) {
+                        if let image = image { FamilyStore.shared.addPhoto(image, note: note) }
+                        dismiss()
+                    }
+                    .disabled(image == nil)
+                }
+            }
+        }
+        .navigationViewStyle(.stack)
+        .onAppear {
+            guard !asked else { return }
+            asked = true
+            picking = true
+        }
+        .sheet(isPresented: $picking) {
             PhotoPicker { picked in
-                if let picked = picked { image = picked } else { dismiss() }
+                picking = false
+                if let picked = picked { image = picked }
             }
         }
     }

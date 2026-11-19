@@ -47,6 +47,7 @@ struct PhotoPicker: UIViewControllerRepresentable {
         var config = PHPickerConfiguration()
         config.filter = .images
         config.selectionLimit = 1
+        config.preferredAssetRepresentationMode = .current   // skip HEIC→JPEG conversion, which can fail
         let vc = PHPickerViewController(configuration: config)
         vc.delegate = context.coordinator
         return vc
