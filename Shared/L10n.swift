@@ -62,6 +62,7 @@ enum L: String {
     case merryChristmas, happyLunarNewYear, shareNoPhoto, shareSent, shareLater, shareNotSetUp
     case feelsLike, high, low, rain, wind, sunrise, sunset, next12Hours, next5Days
     case notice, noticeEmpty, noticeHint, clearNotice, nextUp
+    case pagePinkClock, next2Weeks, birthdays, noBirthdays, inDays, birthdayToday, hoursAhead, hoursBehind, sameTime
     case sunny, clearNight, partlyCloudy, cloudy, foggy, drizzle, rainy, snowy, thunder
 
     private static let table: [L: [AppLanguage: String]] = [
@@ -121,7 +122,16 @@ enum L: String {
         .pages: [.english: "Pages", .cantonese: "頁面", .mandarin: "页面", .hindi: "पेज", .polish: "Strony"],
         .pageHome: [.english: "Home", .cantonese: "主頁", .mandarin: "主页", .hindi: "होम", .polish: "Start"],
         .pagePhotos: [.english: "Photos (full screen)", .cantonese: "相片（全螢幕）", .mandarin: "照片（全屏）", .hindi: "फ़ोटो (पूरी स्क्रीन)", .polish: "Zdjęcia (pełny ekran)"],
-        .pageClocks: [.english: "Big clocks and weather", .cantonese: "大時鐘同天氣", .mandarin: "大时钟和天气", .hindi: "बड़ी घड़ियाँ और मौसम", .polish: "Duże zegary i pogoda"],
+        .pageClocks: [.english: "Two homes: time and weather", .cantonese: "兩個家：時間同天氣", .mandarin: "两个家：时间和天气", .hindi: "दो घर: समय और मौसम", .polish: "Dwa domy: czas i pogoda"],
+        .pagePinkClock: [.english: "Pink clock", .cantonese: "粉紅時鐘", .mandarin: "粉色时钟", .hindi: "गुलाबी घड़ी", .polish: "Różowy zegar"],
+        .next2Weeks: [.english: "Next 2 weeks", .cantonese: "兩週日程", .mandarin: "两周日程", .hindi: "अगले 2 हफ़्ते", .polish: "Następne 2 tygodnie"],
+        .birthdays: [.english: "Birthdays", .cantonese: "生日倒數", .mandarin: "生日倒数", .hindi: "जन्मदिन", .polish: "Urodziny"],
+        .noBirthdays: [.english: "No birthdays yet. Add birthdays to people in Contacts, or a calendar event with \"birthday\" in its name.", .cantonese: "未有生日。喺「通訊錄」加生日，或者喺日曆加個有「生日」嘅活動。", .mandarin: "还没有生日。在「通讯录」添加生日，或在日历添加带「生日」的活动。", .hindi: "अभी कोई जन्मदिन नहीं। Contacts में जन्मदिन जोड़ें, या \"birthday\" नाम वाला कैलेंडर इवेंट।", .polish: "Brak urodzin. Dodaj urodziny w Kontaktach lub wydarzenie z \"birthday\" w nazwie."],
+        .inDays: [.english: "in %d days", .cantonese: "仲有 %d 日", .mandarin: "还有 %d 天", .hindi: "%d दिन में", .polish: "za %d dni"],
+        .birthdayToday: [.english: "Today! 🎉", .cantonese: "今日！🎉", .mandarin: "今天！🎉", .hindi: "आज! 🎉", .polish: "Dziś! 🎉"],
+        .hoursAhead: [.english: "%@h ahead", .cantonese: "快 %@ 個鐘", .mandarin: "快 %@ 小时", .hindi: "%@ घंटे आगे", .polish: "%@ godz. do przodu"],
+        .hoursBehind: [.english: "%@h behind", .cantonese: "慢 %@ 個鐘", .mandarin: "慢 %@ 小时", .hindi: "%@ घंटे पीछे", .polish: "%@ godz. do tyłu"],
+        .sameTime: [.english: "Same time", .cantonese: "同一時間", .mandarin: "同一时间", .hindi: "समान समय", .polish: "Ten sam czas"],
         .rotatePages: [.english: "Change page automatically", .cantonese: "自動轉頁", .mandarin: "自动翻页", .hindi: "अपने आप पेज बदलें", .polish: "Zmieniaj strony automatycznie"],
         .everyPage: [.english: "Every", .cantonese: "每", .mandarin: "每", .hindi: "हर", .polish: "Co"],
         .sendLink: [.english: "Send invite link", .cantonese: "傳送邀請連結", .mandarin: "发送邀请链接", .hindi: "आमंत्रण लिंक भेजें", .polish: "Wyślij link z zaproszeniem"],

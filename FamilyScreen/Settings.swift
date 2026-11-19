@@ -31,17 +31,22 @@ struct NewsFeed: Codable, Equatable, Identifiable {
 
 /// Pages the screen can show. Families pick which ones and swipe or auto-rotate between them.
 enum ScreenPage: String, CaseIterable, Codable, Identifiable {
-    case home, photos, clocks, calendar, news
+    case home, photos, clocks, calendar, birthdays, pinkClock, news
     var id: String { rawValue }
     var title: L {
         switch self {
         case .home: return .pageHome
         case .photos: return .pagePhotos
         case .clocks: return .pageClocks
-        case .calendar: return .calendar
+        case .calendar: return .next2Weeks
+        case .birthdays: return .birthdays
+        case .pinkClock: return .pagePinkClock
         case .news: return .news
         }
     }
+
+    /// Shown on a new iPad; news stays off until the family adds a feed.
+    static let starter: [ScreenPage] = [.home, .photos, .clocks, .calendar, .birthdays, .pinkClock]
 }
 
 /// How photos are framed on the screen.
@@ -85,6 +90,7 @@ final class AppSettings: ObservableObject {
     @Published var frameStyle: FrameStyle { didSet { save() } }
     @Published var festivalThemes: Bool { didSet { save() } }
     @Published var panZoom: Bool { didSet { save() } }
+    private var homeClockPages = false
 
     private struct Stored: Codable {
         var homeName = "Home"
@@ -100,7 +106,7 @@ final class AppSettings: ObservableObject {
         var readMessages = true
         var feeds: [NewsFeed] = []
         var slideSeconds = 15
-        var pages: [ScreenPage] = [.home, .photos, .clocks]
+        var pages: [ScreenPage] = ScreenPage.starter
         var rotatePages = true
         var pageSeconds = 60
         var hiddenHomes: [String] = []
@@ -109,6 +115,8 @@ final class AppSettings: ObservableObject {
         var frameStyle: FrameStyle?
         var festivalThemes: Bool?
         var panZoom: Bool?
+        /// Set once the Home Clock pages update has run on this iPad.
+        var homeClockPages: Bool?
     }
 
     private let key = "settings.v1"
@@ -138,11 +146,18 @@ final class AppSettings: ObservableObject {
         pageSeconds = s.pageSeconds
         hiddenHomes = s.hiddenHomes
         sharedAlbumID = s.sharedAlbumID ?? ""
-        frameStyle = s.frameStyle ?? .polaroid
+        frameStyle = s.frameStyle ?? .plain
         festivalThemes = s.festivalThemes ?? true
         panZoom = s.panZoom ?? true
+        homeClockPages = s.homeClockPages ?? false
+        if !homeClockPages {
+            // One-time update: turn on the new pages and show photos large, without a frame.
+            pages = ScreenPage.allCases.filter { pages.contains($0) || ScreenPage.starter.contains($0) }
+            frameStyle = .plain
+            homeClockPages = true
+        }
         loading = false
-        shareWithExtension()
+        save()
     }
 
     private func save() {
@@ -153,7 +168,7 @@ final class AppSettings: ObservableObject {
                        readMessages: readMessages, feeds: feeds, slideSeconds: slideSeconds,
                        pages: pages, rotatePages: rotatePages, pageSeconds: pageSeconds, hiddenHomes: hiddenHomes,
                        sharedAlbumID: sharedAlbumID, frameStyle: frameStyle, festivalThemes: festivalThemes,
-                       panZoom: panZoom)
+                       panZoom: panZoom, homeClockPages: homeClockPages)
         if let data = try? JSONEncoder().encode(s) {
             UserDefaults.standard.set(data, forKey: key)
         }

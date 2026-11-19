@@ -386,51 +386,6 @@ struct AddPhotoView: View {
     }
 }
 
-// MARK: - Big clocks page
-
-struct ClocksPage: View {
-    var weatherA: WeatherNow?
-    var weatherB: WeatherNow?
-    @ObservedObject private var settings = AppSettings.shared
-
-    var body: some View {
-        GeometryReader { geo in
-            let layout = geo.size.width > geo.size.height ? AnyLayoutBox.horizontal : AnyLayoutBox.vertical
-            layout.stack {
-                bigCity(settings.cityA, weatherA)
-                bigCity(settings.cityB, weatherB)
-            }
-        }
-    }
-
-    private func bigCity(_ city: City, _ weather: WeatherNow?) -> some View {
-        Card {
-            VStack(spacing: 10) {
-                Text(city.name).font(.system(size: 40, weight: .bold)).foregroundColor(.accentColor)
-                TimelineView(.everyMinute) { context in
-                    VStack(spacing: 6) {
-                        Text(Format.time(context.date, city: city, language: settings.language))
-                            .font(.system(size: 110, weight: .bold, design: .rounded)).monospacedDigit()
-                            .minimumScaleFactor(0.4).lineLimit(1)
-                        Text(Format.string(context.date, template: "EEEEdMMMM", city: city, language: settings.language))
-                            .font(.title).foregroundColor(.secondary)
-                    }
-                }
-                if let w = weather {
-                    HStack(spacing: 16) {
-                        Image(systemName: w.symbol).symbolRenderingMode(.multicolor).font(.system(size: 64))
-                        Text("\(Int(w.temperature.rounded()))°").font(.system(size: 64, weight: .bold))
-                    }
-                    if let hi = w.high, let lo = w.low {
-                        Text("↑\(Int(hi.rounded()))°  ↓\(Int(lo.rounded()))°").font(.title).foregroundColor(.secondary)
-                    }
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
-    }
-}
-
 // MARK: - News list page
 
 struct NewsPage: View {

@@ -106,8 +106,10 @@ struct DashboardView: View {
         switch page {
         case .home: homePage.padding(.bottom, 24)
         case .photos: PhotoPanel(events: calendar.events, onAdd: { sheet = .addPhoto }).padding(.bottom, 24)
-        case .clocks: ClocksPage(weatherA: weatherA, weatherB: weatherB).padding(.bottom, 24)
-        case .calendar: CalendarCard(feed: calendar, limit: 10, large: true).padding(.bottom, 24)
+        case .clocks: TwoHomesPage(weatherA: weatherA, weatherB: weatherB).padding(.bottom, 24)
+        case .calendar: TwoWeekPage(feed: calendar).padding(.bottom, 24)
+        case .birthdays: BirthdaysPage(feed: calendar).padding(.bottom, 24)
+        case .pinkClock: PinkClockPage(weatherA: weatherA).padding(.bottom, 24)
         case .news: NewsPage(headlines: news.headlines) { sheet = .article($0) }.padding(.bottom, 24)
         }
     }
