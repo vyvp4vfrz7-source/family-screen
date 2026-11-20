@@ -5,6 +5,8 @@ import SwiftUI
 struct PhotoPanel: View {
     var events: [UpcomingEvent] = []
     var onAdd: () -> Void
+    /// Shows the time as big see-through digits on the photo (the Photos page).
+    var bigTime = false
     @ObservedObject private var store = FamilyStore.shared
     @ObservedObject private var settings = AppSettings.shared
     @ObservedObject private var album = SharedAlbumSource.shared
@@ -12,6 +14,8 @@ struct PhotoPanel: View {
     @State private var image: UIImage?
     /// The slide on screen; it changes only once the next image has loaded.
     @State private var shown: Slide?
+    /// Which side the big time sits on: the calmer half of the photo.
+    @State private var timeOnLeft = false
 
     /// Family photos and the chosen shared album, newest first.
     private var slides: [Slide] {
@@ -41,6 +45,11 @@ struct PhotoPanel: View {
                     .id(slide.id)
                     .transition(.opacity)
                 caption(for: slide)
+                if bigTime {
+                    BigPhotoTime(onLeft: timeOnLeft)
+                        .id("time-\(slide.id)")
+                        .transition(.opacity)
+                }
             } else if slides.isEmpty {
                 PhotoSetupCard().frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -124,6 +133,68 @@ struct PhotoPanel: View {
         guard current?.id == slide.id else { return }   // moved on while loading
         image = next
         shown = slide
+        if bigTime, let next = next { timeOnLeft = BigPhotoTime.leftIsCalmer(next) }
+    }
+}
+
+// MARK: - Big time on the photo
+
+/// The hour and minute stacked as huge frosted digits over one side of the photo.
+struct BigPhotoTime: View {
+    var onLeft: Bool
+    @ObservedObject private var settings = AppSettings.shared
+
+    var body: some View {
+        GeometryReader { geo in
+            TimelineView(.periodic(from: .now, by: 1)) { context in
+                let parts = Self.parts(context.date, city: settings.cityA, language: settings.language)
+                let size = geo.size.height * 0.44
+                VStack(spacing: -size * 0.12) {
+                    Text(parts.hour)
+                    Text(parts.minute)
+                }
+                .font(.custom("AvenirNextCondensed-Heavy", size: size))
+                .monospacedDigit()
+                .foregroundColor(.white.opacity(0.42))
+                .shadow(color: .black.opacity(0.25), radius: 12, y: 4)
+                .lineLimit(1).minimumScaleFactor(0.5)
+                .padding(.horizontal, geo.size.width * 0.04)
+                .frame(width: geo.size.width, height: geo.size.height, alignment: onLeft ? .leading : .trailing)
+            }
+        }
+        .allowsHitTesting(false)
+        .animation(.easeInOut(duration: 0.8), value: onLeft)
+    }
+
+    static func parts(_ date: Date, city: City, language: AppLanguage) -> (hour: String, minute: String) {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = city.timeZone
+        let c = cal.dateComponents([.hour, .minute], from: date)
+        var hour = c.hour ?? 0
+        let format = DateFormatter.dateFormat(fromTemplate: "j", options: 0, locale: language.locale) ?? "H"
+        if format.contains("a") { hour = hour % 12 == 0 ? 12 : hour % 12 }
+        return (String(format: "%02d", hour), String(format: "%02d", c.minute ?? 0))
+    }
+
+    /// True when the left half of the picture has less detail than the right,
+    /// so the digits cover sky or wall rather than faces.
+    static func leftIsCalmer(_ image: UIImage) -> Bool {
+        guard let cg = image.cgImage else { return false }
+        let w = 32, h = 32
+        var pixels = [UInt8](repeating: 0, count: w * h)
+        guard let ctx = CGContext(data: &pixels, width: w, height: h, bitsPerComponent: 8, bytesPerRow: w,
+                                  space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGImageAlphaInfo.none.rawValue)
+        else { return false }
+        ctx.draw(cg, in: CGRect(x: 0, y: 0, width: w, height: h))
+        func detail(_ xs: Range<Int>) -> Int {
+            var sum = 0
+            for y in 0..<h { for x in xs.dropFirst() {
+                sum += abs(Int(pixels[y * w + x]) - Int(pixels[y * w + x - 1]))
+                if y > 0 { sum += abs(Int(pixels[y * w + x]) - Int(pixels[(y - 1) * w + x])) }
+            } }
+            return sum
+        }
+        return detail(0..<(w / 2)) < detail((w / 2)..<w)
     }
 }
 
