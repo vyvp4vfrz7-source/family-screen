@@ -1,8 +1,7 @@
 import SwiftUI
 
-// The home page: a big clock-and-weather card on top, the next 12 hours and
-// next 5 days below, and the family photo on the right. A one-line family
-// notice sits in the clock card.
+// The home page: a slim clock, weather and notice bar on top, and a big
+// family photo filling the rest of the screen.
 
 enum Theme {
     static let background = Color(red: 0.06, green: 0.07, blue: 0.10)
@@ -27,57 +26,50 @@ struct HomePage: View {
     var body: some View {
         GeometryReader { geo in
             let gap: CGFloat = 12
-            if geo.size.width > geo.size.height {
-                VStack(spacing: gap) {
-                    HeroCard(weatherA: weatherA, weatherB: weatherB, events: events, onEditNotice: onEditNotice)
-                        .frame(height: geo.size.height * 0.48)
-                    HStack(spacing: gap) {
-                        VStack(spacing: gap) {
-                            HourlyCard(weather: weatherA)
-                            DailyCard(weather: weatherA)
-                        }
-                        PhotoPanel(events: events, onAdd: onAddPhoto)
-                            .frame(width: geo.size.width * 0.40)
-                    }
-                }
-            } else {
-                VStack(spacing: gap) {
-                    HeroCard(weatherA: weatherA, weatherB: weatherB, events: events, onEditNotice: onEditNotice)
-                        .frame(height: geo.size.height * 0.30)
-                    PhotoPanel(events: events, onAdd: onAddPhoto)
-                    HourlyCard(weather: weatherA).frame(height: geo.size.height * 0.17)
-                    DailyCard(weather: weatherA).frame(height: geo.size.height * 0.17)
+            let landscape = geo.size.width > geo.size.height
+            VStack(spacing: gap) {
+                HeroBar(weatherA: weatherA, weatherB: weatherB, showForecast: landscape, onEditNotice: onEditNotice)
+                    .frame(height: geo.size.height * (landscape ? 0.25 : 0.17))
+                PhotoPanel(events: events, onAdd: onAddPhoto)
+                if !landscape {
+                    DailyCard(weather: weatherA).frame(height: geo.size.height * 0.2)
                 }
             }
         }
     }
 }
 
-// MARK: - Clock and weather
+// MARK: - Slim clock, weather and notice bar
 
-struct HeroCard: View {
+/// One slim bar on top of the home page, so the photo below can be big:
+/// clock and date, both homes' weather characters, a 5-day forecast and the
+/// yellow post-it notice.
+struct HeroBar: View {
     var weatherA: WeatherNow?
     var weatherB: WeatherNow?
-    var events: [UpcomingEvent]
+    var showForecast = true
     var onEditNotice: () -> Void
     @ObservedObject private var settings = AppSettings.shared
+    /// Which home the 5-day forecast shows; it swaps every 10 seconds or on tap.
+    @State private var forecastB = false
 
     var body: some View {
         GeometryReader { geo in
             let h = geo.size.height
-            HStack(alignment: .top, spacing: 16) {
-                VStack(alignment: .leading, spacing: 0) {
-                    clock(height: h)
-                    Spacer(minLength: 8)
-                    NoticePill(onEdit: onEditNotice, fontSize: max(h * 0.075, 20))
-                        .frame(maxWidth: geo.size.width * 0.46, alignment: .leading)
-                        .padding(.top, h * 0.03)
+            HStack(alignment: .center, spacing: h * 0.14) {
+                clock(height: h)
+                divider(h)
+                cityWeather(settings.cityA, weatherA, height: h, big: true)
+                cityWeather(settings.cityB, weatherB, height: h, big: false)
+                if showForecast {
+                    divider(h)
+                    forecast(height: h)
                 }
                 Spacer(minLength: 0)
-                weather(height: h)
+                NoticePill(onEdit: onEditNotice, fontSize: max(h * 0.13, 18))
+                    .frame(maxWidth: geo.size.width * (showForecast ? 0.2 : 0.3))
             }
-            .padding(.horizontal, h * 0.09)
-            .padding(.vertical, h * 0.07)
+            .padding(.horizontal, h * 0.16)
             .frame(width: geo.size.width, height: h)
         }
         .background(
@@ -85,105 +77,93 @@ struct HeroCard: View {
                 .fill(LinearGradient(colors: [Theme.heroTop, Theme.heroBottom], startPoint: .top, endPoint: .bottom))
         )
         .foregroundColor(.white)
+        .task {
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 10_000_000_000)
+                withAnimation(.easeInOut(duration: 0.5)) { forecastB.toggle() }
+            }
+        }
+    }
+
+    private func divider(_ h: CGFloat) -> some View {
+        Rectangle().fill(Color.white.opacity(0.2)).frame(width: 2, height: h * 0.65)
     }
 
     private func clock(height h: CGFloat) -> some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
             let date = context.date
-            VStack(alignment: .leading, spacing: h * 0.03) {
-                HStack(alignment: .lastTextBaseline, spacing: 6) {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(alignment: .lastTextBaseline, spacing: 4) {
                     Text(Format.time(date, city: settings.cityA, language: settings.language))
-                        .font(.system(size: h * 0.3, weight: .light)).monospacedDigit()
-                        .lineLimit(1).minimumScaleFactor(0.4)
+                        .font(.system(size: h * 0.48, weight: .light)).monospacedDigit()
                     Text(Format.string(date, template: "ss", city: settings.cityA, language: settings.language))
-                        .font(.system(size: h * 0.10, weight: .light)).monospacedDigit()
-                        .foregroundColor(.white.opacity(0.75))
-                }
-                (Text(Format.string(date, template: "EEEE", city: settings.cityA, language: settings.language)).fontWeight(.semibold)
-                 + Text(" " + Format.string(date, template: "dMMMM", city: settings.cityA, language: settings.language))
-                    .foregroundColor(.white.opacity(0.8)))
-                    .font(.system(size: h * 0.085))
-                    .lineLimit(1).minimumScaleFactor(0.6)
-                Text(otherCityLine(date))
-                    .font(.system(size: h * 0.06)).foregroundColor(.white.opacity(0.8))
-                    .lineLimit(1).minimumScaleFactor(0.6)
-                if let e = events.first {
-                    Label(nextEvent(e), systemImage: "calendar")
-                        .font(.system(size: h * 0.05)).foregroundColor(.white.opacity(0.7))
-                        .lineLimit(1)
-                }
-            }
-        }
-    }
-
-    private func otherCityLine(_ date: Date) -> String {
-        let b = settings.cityB
-        var line = "\(b.name)  \(Format.time(date, city: b, language: settings.language)) · "
-            + Format.string(date, template: "EEE", city: b, language: settings.language)
-        if let w = weatherB { line += " · \(Int(w.temperature.rounded()))°" }
-        return line
-    }
-
-    private func nextEvent(_ e: UpcomingEvent) -> String {
-        let cal = Calendar.current
-        let day: String
-        if cal.isDateInToday(e.start) { day = settings.t(.today) }
-        else if cal.isDateInTomorrow(e.start) { day = settings.t(.tomorrow) }
-        else { day = Format.string(e.start, template: "EEE", language: settings.language) }
-        let when = e.allDay ? day : "\(day) \(Format.time(e.start, language: settings.language))"
-        return "\(settings.t(.nextUp)): \(e.title) · \(when)"
-    }
-
-    @ViewBuilder
-    private func weather(height h: CGFloat) -> some View {
-        VStack(alignment: .trailing, spacing: h * 0.025) {
-            HStack(alignment: .center, spacing: 14) {
-                CuteWeatherIcon(symbol: weatherA?.symbol ?? "cloud.fill", size: h * 0.36,
-                                windy: (weatherA?.windKmh ?? 0) >= WeatherWords.windyKmh)
-                VStack(alignment: .trailing, spacing: 0) {
-                    Text(settings.cityA.name.uppercased())
-                        .font(.system(size: h * 0.04, weight: .semibold)).kerning(1.5)
+                        .font(.system(size: h * 0.15, weight: .light)).monospacedDigit()
                         .foregroundColor(.white.opacity(0.7))
-                    Text(weatherA.map { "\(Int($0.temperature.rounded()))°" } ?? "–")
-                        .font(.system(size: h * 0.26, weight: .light))
                 }
+                .lineLimit(1).minimumScaleFactor(0.5)
+                (Text(Format.string(date, template: "EEEE", city: settings.cityA, language: settings.language)).fontWeight(.semibold)
+                 + Text(" " + Format.string(date, template: "dMMMM", city: settings.cityA, language: settings.language)))
+                    .font(.system(size: h * 0.14))
+                    .lineLimit(1).minimumScaleFactor(0.6)
             }
-            if let w = weatherA {
-                Text(settings.t(WeatherWords.condition(for: w.symbol)))
-                    .font(.system(size: h * 0.075, weight: .semibold))
-                Text(detailLine(w))
-                    .font(.system(size: h * 0.05)).foregroundColor(.white.opacity(0.8))
-                Spacer(minLength: 4)
-                HStack(spacing: 0) {
-                    stat(.rain, w.rainChance.map { "\(Int(($0 * 100).rounded()))%" }, h)
-                    stat(.wind, w.windKmh.map { "\(Int($0.rounded())) km/h" }, h)
-                    stat(.sunrise, w.sunrise.map { Format.time($0, city: settings.cityA, language: settings.language) }, h)
-                    stat(.sunset, w.sunset.map { Format.time($0, city: settings.cityA, language: settings.language) }, h)
-                }
-                .padding(.vertical, h * 0.035)
-                .background(RoundedRectangle(cornerRadius: 14).fill(Color.black.opacity(0.18)))
-            }
+            .fixedSize(horizontal: true, vertical: false)
         }
     }
 
-    private func detailLine(_ w: WeatherNow) -> String {
-        var parts: [String] = []
-        if let f = w.feelsLike { parts.append("\(settings.t(.feelsLike)) \(Int(f.rounded()))°") }
-        if let hi = w.high, let lo = w.low {
-            parts.append("\(settings.t(.high)) \(Int(hi.rounded()))° \(settings.t(.low)) \(Int(lo.rounded()))°")
+    private func cityWeather(_ city: City, _ w: WeatherNow?, height h: CGFloat, big: Bool) -> some View {
+        HStack(spacing: h * 0.06) {
+            CuteWeatherIcon(symbol: w?.symbol ?? "cloud.fill", size: h * (big ? 0.62 : 0.46),
+                            windy: (w?.windKmh ?? 0) >= WeatherWords.windyKmh)
+            VStack(alignment: .leading, spacing: 0) {
+                Text(city.name.uppercased())
+                    .font(.system(size: h * 0.09, weight: .semibold)).kerning(1.2)
+                    .foregroundColor(.white.opacity(0.7))
+                Text(w.map { "\(Int($0.temperature.rounded()))°" } ?? "–")
+                    .font(.system(size: h * (big ? 0.36 : 0.26), weight: .light))
+                if big, let w = w {
+                    Text(settings.t(WeatherWords.condition(for: w.symbol)))
+                        .font(.system(size: h * 0.1, weight: .semibold))
+                } else {
+                    TimelineView(.periodic(from: .now, by: 30)) { context in
+                        Text(Format.time(context.date, city: city, language: settings.language))
+                            .font(.system(size: h * 0.09)).foregroundColor(.white.opacity(0.8))
+                    }
+                }
+            }
+            .lineLimit(1).minimumScaleFactor(0.6)
         }
-        return parts.joined(separator: " · ")
+        .fixedSize()
     }
 
-    private func stat(_ key: L, _ value: String?, _ h: CGFloat) -> some View {
-        VStack(spacing: 4) {
-            Text(settings.t(key).uppercased())
-                .font(.system(size: h * 0.035, weight: .semibold)).foregroundColor(.white.opacity(0.6))
-            Text(value ?? "–")
-                .font(.system(size: h * 0.06, weight: .medium)).monospacedDigit()
+    private func forecast(height h: CGFloat) -> some View {
+        let city = forecastB ? settings.cityB : settings.cityA
+        let days = Array(((forecastB ? weatherB : weatherA)?.daily ?? []).prefix(5))
+        return VStack(alignment: .leading, spacing: h * 0.02) {
+            Text("\(city.name) · \(settings.t(.next5Days))".uppercased())
+                .font(.system(size: h * 0.075, weight: .semibold)).kerning(1)
+                .foregroundColor(.white.opacity(0.7)).lineLimit(1)
+            HStack(spacing: h * 0.04) {
+                if days.isEmpty { Text("–").foregroundColor(Theme.label) }
+                ForEach(days, id: \.date) { day in
+                    VStack(spacing: 0) {
+                        Text(Format.string(day.date, template: "EEE", city: city, language: settings.language))
+                            .font(.system(size: h * 0.09, weight: .semibold))
+                        CuteWeatherIcon(symbol: day.symbol, size: h * 0.3)
+                        HStack(spacing: 3) {
+                            Text("\(Int(day.high.rounded()))°").fontWeight(.bold)
+                            Text("\(Int(day.low.rounded()))°").foregroundColor(.white.opacity(0.6))
+                        }
+                        .font(.system(size: h * 0.09))
+                    }
+                    .lineLimit(1).minimumScaleFactor(0.6)
+                    .frame(width: h * 0.42)
+                }
+            }
         }
-        .lineLimit(1).minimumScaleFactor(0.6)
-        .frame(width: h * 0.24)
+        .id(forecastB)
+        .transition(.opacity)
+        .contentShape(Rectangle())
+        .onTapGesture { withAnimation { forecastB.toggle() } }
     }
 }
 

@@ -137,12 +137,22 @@ struct TwoWeekPage: View {
         let cal = Calendar.current
         let today = cal.isDateInToday(day)
         let items = feed.fortnight.filter { cal.isDate($0.start, inSameDayAs: day) }
+        let holidays = Holidays.on(day, cities: [settings.cityA, settings.cityB])
+        let weekday = cal.component(.weekday, from: day)   // 1 = Sunday, 7 = Saturday
+        let red = !holidays.isEmpty || weekday == 1
+        let tint: Color? = red ? DayColors.holiday : (weekday == 7 ? DayColors.saturday : nil)
         return VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(Format.string(day, template: "EEE", language: settings.language))
-                    .font(.subheadline.bold()).foregroundColor(today ? Theme.notice : Theme.label)
+                    .font(.subheadline.bold()).foregroundColor(today ? Theme.notice : (tint ?? Theme.label))
                 Text(Format.string(day, template: "d", language: settings.language))
-                    .font(.title2.bold())
+                    .font(.title2.bold()).foregroundColor(tint ?? .white)
+            }
+            ForEach(Array(Set(holidays.map { $0.title(settings.language) })).sorted(), id: \.self) { name in
+                let flags = holidays.filter { $0.title(settings.language) == name }.map(\.country.flag).joined()
+                Text("\(name) \(flags)")
+                    .font(.caption.weight(.semibold)).foregroundColor(DayColors.holidayText)
+                    .lineLimit(2).minimumScaleFactor(0.8)
             }
             ForEach(items.prefix(4)) { e in
                 HStack(alignment: .top, spacing: 4) {
@@ -163,9 +173,19 @@ struct TwoWeekPage: View {
         }
         .padding(10)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(RoundedRectangle(cornerRadius: 16).fill(today ? Theme.tile : Theme.card))
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(today ? Theme.notice.opacity(0.7) : .clear, lineWidth: 2))
+        .background(ZStack {
+            RoundedRectangle(cornerRadius: 16).fill(today ? Theme.tile : Theme.card)
+            RoundedRectangle(cornerRadius: 16).fill((tint ?? .clear).opacity(today ? 0 : 0.16))
+        })
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(today ? Theme.notice.opacity(0.9) : .clear, lineWidth: 3))
     }
+}
+
+/// Saturday is blue; Sunday and public holidays are red, like a paper calendar.
+enum DayColors {
+    static let saturday = Color(red: 0.50, green: 0.70, blue: 1.0)
+    static let holiday = Color(red: 1.0, green: 0.48, blue: 0.48)
+    static let holidayText = Color(red: 1.0, green: 0.70, blue: 0.70)
 }
 
 /// Little pictures for common family events, like the old web page.
