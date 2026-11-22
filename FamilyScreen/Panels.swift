@@ -7,6 +7,8 @@ struct PhotoPanel: View {
     var onAdd: () -> Void
     /// Shows the time as big see-through digits on the photo (the Photos page).
     var bigTime = false
+    /// false on a grandparents' screen: no add button and no delete.
+    var canEdit = true
     @ObservedObject private var store = FamilyStore.shared
     @ObservedObject private var settings = AppSettings.shared
     @ObservedObject private var album = SharedAlbumSource.shared
@@ -57,21 +59,25 @@ struct PhotoPanel: View {
         }
         .animation(.easeInOut(duration: 0.8), value: shown?.id)
         .overlay(alignment: .topTrailing) {
-            Button(action: onAdd) {
-                Image(systemName: "plus").font(.title.weight(.bold)).foregroundColor(.white)
-                    .frame(width: 64, height: 64).background(Circle().fill(Color.accentColor))
+            if canEdit && !settings.grandparentMode {
+                Button(action: onAdd) {
+                    Image(systemName: "plus").font(.title.weight(.bold)).foregroundColor(.white)
+                        .frame(width: 64, height: 64).background(Circle().fill(Color.accentColor))
+                }
+                .accessibilityLabel(settings.t(.addPhoto))
+                .padding(14)
             }
-            .accessibilityLabel(settings.t(.addPhoto))
-            .padding(14)
         }
         .clipShape(RoundedRectangle(cornerRadius: 24))
         .contextMenu {
             if let photo = shown?.familyPhoto {
-                Button { store.setPinned(photo.id, !photo.pinned) } label: {
-                    Label(settings.t(photo.pinned ? .unpin : .pin), systemImage: photo.pinned ? "pin.slash" : "pin")
-                }
-                Button(role: .destructive) { store.deletePhoto(photo.id) } label: {
-                    Label(settings.t(.delete), systemImage: "trash")
+                if canEdit && !settings.grandparentMode {
+                    Button { store.setPinned(photo.id, !photo.pinned) } label: {
+                        Label(settings.t(photo.pinned ? .unpin : .pin), systemImage: photo.pinned ? "pin.slash" : "pin")
+                    }
+                    Button(role: .destructive) { store.deletePhoto(photo.id) } label: {
+                        Label(settings.t(.delete), systemImage: "trash")
+                    }
                 }
                 if photo.author != settings.homeName {
                     Button { store.hide(author: photo.author) } label: {

@@ -63,6 +63,7 @@ enum L: String {
     case feelsLike, high, low, rain, wind, sunrise, sunset, next12Hours, next5Days
     case notice, noticeEmpty, noticeHint, clearNotice, nextUp
     case pagePinkClock, next2Weeks, birthdays, noBirthdays, inDays, birthdayToday, hoursAhead, hoursBehind, sameTime
+    case grandparentMode, grandparentHint, allowRemote, grandScreens, grandScreensHint, noGrandScreens, remoteLocked, saveToScreen, holdForSettings
     case sunny, clearNight, partlyCloudy, cloudy, foggy, drizzle, rainy, snowy, thunder
 
     private static let table: [L: [AppLanguage: String]] = [
@@ -187,6 +188,15 @@ enum L: String {
         .noticeHint: [.english: "A short note for everyone, e.g. \"Dinner at 7\"", .cantonese: "寫句俾全家睇，例如「七點食飯」", .mandarin: "写一句给全家看，例如「七点吃饭」", .hindi: "सबके लिए छोटा नोट, जैसे \"7 बजे खाना\"", .polish: "Krótka wiadomość dla wszystkich, np. \"Kolacja o 19\""],
         .clearNotice: [.english: "Clear notice", .cantonese: "清除告示", .mandarin: "清除告示", .hindi: "सूचना हटाएँ", .polish: "Usuń ogłoszenie"],
         .nextUp: [.english: "Next", .cantonese: "下一個", .mandarin: "下一个", .hindi: "अगला", .polish: "Następne"],
+        .grandparentMode: [.english: "Grandparents' mode", .cantonese: "長輩模式", .mandarin: "长辈模式"],
+        .grandparentHint: [.english: "For grandparents: Chinese first, fewer buttons, and Settings opens only after holding the gear for 3 seconds. Family members can look after this screen from their own iPad.", .cantonese: "俾長輩用：中文優先、少啲掣，要㩒住齒輪三秒先開到設定。家人可以喺自己部 iPad 幫手設定呢個畫面。", .mandarin: "给长辈用：中文优先、按钮更少，按住齿轮三秒才能打开设置。家人可以在自己的 iPad 上帮忙设置这个画面。"],
+        .allowRemote: [.english: "Let family change this screen", .cantonese: "容許家人幫手設定", .mandarin: "允许家人帮忙设置"],
+        .grandScreens: [.english: "Grandparents' screens", .cantonese: "長輩嘅畫面", .mandarin: "长辈的画面"],
+        .grandScreensHint: [.english: "Screens in your family that use Grandparents' mode. Changes reach them within a minute.", .cantonese: "家庭入面用緊長輩模式嘅畫面。改咗一分鐘內就會更新。", .mandarin: "家庭中使用长辈模式的画面。更改会在一分钟内生效。"],
+        .noGrandScreens: [.english: "No grandparents' screen yet. On their iPad, join your family with the invite link, then turn on Grandparents' mode.", .cantonese: "未有長輩畫面。喺佢哋部 iPad 用邀請連結加入家庭，再開長輩模式。", .mandarin: "还没有长辈画面。在他们的 iPad 上用邀请链接加入家庭，再打开长辈模式。"],
+        .remoteLocked: [.english: "The grandparents have turned off changes from family. Ask them to turn on “Let family change this screen”.", .cantonese: "長輩已經關咗家人設定。請佢哋開返「容許家人幫手設定」。", .mandarin: "长辈已关闭家人设置。请他们打开「允许家人帮忙设置」。"],
+        .saveToScreen: [.english: "Send", .cantonese: "傳送", .mandarin: "发送"],
+        .holdForSettings: [.english: "Hold for 3 seconds to open Settings", .cantonese: "㩒住三秒開設定", .mandarin: "按住三秒打开设置"],
         .sunny: [.english: "Sunny", .cantonese: "天晴", .mandarin: "晴", .hindi: "धूप", .polish: "Słonecznie"],
         .clearNight: [.english: "Clear", .cantonese: "天晴", .mandarin: "晴", .hindi: "साफ़", .polish: "Bezchmurnie"],
         .partlyCloudy: [.english: "Partly cloudy", .cantonese: "部分時間有雲", .mandarin: "多云间晴", .hindi: "आंशिक बादल", .polish: "Częściowe zachmurzenie"],
