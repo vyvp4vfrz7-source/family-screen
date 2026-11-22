@@ -20,6 +20,8 @@ final class FamilyStore: ObservableObject {
     @Published private(set) var messages: [FamilyMessage] = []
     @Published var arrival: Arrival?
     @Published var syncStatus: String = ""
+    /// Screens in this family that share their settings (grandparents' screens).
+    @Published private(set) var screens: [ScreenConfig] = []
 
     private let folder: URL
     private var lastSeen: Date {
@@ -39,6 +41,7 @@ final class FamilyStore: ObservableObject {
             .appendingPathComponent("family", isDirectory: true)
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         load()
+        AppSettings.shared.onChange = { [weak self] in self?.settingsChanged() }
     }
 
     var homeName: String { AppSettings.shared.homeName }
@@ -77,19 +80,24 @@ final class FamilyStore: ObservableObject {
 
     private var indexURL: URL { folder.appendingPathComponent("index.json") }
 
-    private struct Index: Codable { var photos: [FamilyPhoto]; var messages: [FamilyMessage] }
+    private struct Index: Codable {
+        var photos: [FamilyPhoto]
+        var messages: [FamilyMessage]
+        var screens: [ScreenConfig]?
+    }
 
     private func load() {
         guard let data = try? Data(contentsOf: indexURL),
               let index = try? JSONDecoder().decode(Index.self, from: data) else { return }
         photos = index.photos
         messages = index.messages
+        screens = index.screens ?? []
     }
 
     private func persist() {
         photos.sort { $0.date > $1.date }
         messages.sort { $0.date > $1.date }
-        if let data = try? JSONEncoder().encode(Index(photos: photos, messages: messages)) {
+        if let data = try? JSONEncoder().encode(Index(photos: photos, messages: messages, screens: screens)) {
             try? data.write(to: indexURL, options: .atomic)
         }
     }
@@ -218,7 +226,11 @@ final class FamilyStore: ObservableObject {
                 messages.removeAll { $0.id == message.id }
                 messages.append(message)
             }
+            for json in changes.screens {
+                if let screen = try? JSONDecoder().decode(ScreenConfig.self, from: Data(json.utf8)) { receive(screen) }
+            }
             for id in changes.deleted {
+                screens.removeAll { $0.recordName == id }
                 photos.removeAll { $0.id == id }
                 messages.removeAll { $0.id == id }
                 try? FileManager.default.removeItem(at: imageURL(id))
@@ -229,6 +241,8 @@ final class FamilyStore: ObservableObject {
             syncStatus = error.localizedDescription
         }
         #endif
+        let s = AppSettings.shared
+        if s.grandparentMode && !screens.contains(where: { $0.screenID == s.screenID }) { settingsChanged() }
         enforceLimits()
         announceArrivals()
     }
@@ -238,6 +252,7 @@ final class FamilyStore: ObservableObject {
         for p in photos { try? FileManager.default.removeItem(at: imageURL(p.id)) }
         photos = []
         messages = []
+        screens = []
         persist()
     }
 
@@ -257,6 +272,66 @@ final class FamilyStore: ObservableObject {
             lastSeen = newest ?? Date()
         } else if newMessage != nil || newPhoto != nil, let newest = newest {
             lastSeen = newest
+        }
+    }
+
+    // MARK: - Grandparents' screens
+
+    private var publishTask: Task<Void, Never>?
+
+    /// A grandparents' screen tells the family its settings, a few seconds
+    /// after the last change, so the adult children see what it shows.
+    private func settingsChanged() {
+        let s = AppSettings.shared
+        guard s.grandparentMode || screens.contains(where: { $0.screenID == s.screenID }) else { return }
+        publishTask?.cancel()
+        publishTask = Task {
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            guard !Task.isCancelled else { return }
+            let config = s.screenConfig(changedBy: s.screenID)
+            screens.removeAll { $0.screenID == config.screenID }
+            screens.append(config)
+            persist()
+            #if APPLE_SERVICES
+            await pushing { try await saveScreen(config) }
+            #endif
+        }
+    }
+
+    #if APPLE_SERVICES
+    private func saveScreen(_ c: ScreenConfig) async throws {
+        let json = String(decoding: try JSONEncoder().encode(c), as: UTF8.self)
+        try await cloud.saveScreen(recordName: c.recordName, json: json)
+    }
+    #endif
+
+    /// An adult child changed a grandparents' screen from their iPad.
+    func sendScreen(_ config: ScreenConfig) {
+        var c = config
+        c.changedAt = Date()
+        c.changedBy = AppSettings.shared.screenID
+        screens.removeAll { $0.screenID == c.screenID }
+        screens.append(c)
+        persist()
+        #if APPLE_SERVICES
+        Task { await pushing { try await saveScreen(c) } }
+        #endif
+    }
+
+    /// Settings arriving from iCloud. This iPad applies them when they are for
+    /// this screen, were changed on another iPad, and the grandparents allow it.
+    private func receive(_ screen: ScreenConfig) {
+        let s = AppSettings.shared
+        let old = screens.first { $0.screenID == screen.screenID }
+        screens.removeAll { $0.screenID == screen.screenID }
+        screens.append(screen)
+        guard screen.screenID == s.screenID, screen.changedBy != s.screenID,
+              screen.changedAt > (old?.changedAt ?? .distantPast) || old?.changedBy == s.screenID
+        else { return }
+        if s.allowRemote {
+            s.apply(screen)
+        } else {
+            settingsChanged()   // tell the family it is locked, with the real settings
         }
     }
 

@@ -19,6 +19,8 @@ struct SettingsView: View {
                     TextField(settings.t(.homeName), text: $settings.homeName)
                 }
 
+                GrandparentSection()
+
                 Section(header: Text(settings.t(.language))) {
                     Picker(settings.t(.language), selection: $settings.language) {
                         ForEach(AppLanguage.allCases) { Text($0.nativeName).tag($0) }
@@ -89,6 +91,7 @@ struct SettingsView: View {
 
                 #if APPLE_SERVICES
                 FamilySection()
+                RemoteScreensSection()
                 #else
                 Section(header: Text(settings.t(.familySync))) {
                     Text(settings.t(.syncOff)).foregroundColor(.secondary)

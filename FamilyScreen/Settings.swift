@@ -90,6 +90,14 @@ final class AppSettings: ObservableObject {
     @Published var frameStyle: FrameStyle { didSet { save() } }
     @Published var festivalThemes: Bool { didSet { save() } }
     @Published var panZoom: Bool { didSet { save() } }
+    /// Grandparents' mode: Cantonese first, fewer buttons, settings behind a long press.
+    @Published var grandparentMode: Bool { didSet { save() } }
+    /// Lets the adult children change this screen from their own iPad. On by default.
+    @Published var allowRemote: Bool { didSet { save() } }
+    /// Identifies this iPad's screen to the rest of the family.
+    let screenID: String
+    /// Called after every change, so a grandparents' screen can tell the family.
+    var onChange: (@MainActor () -> Void)?
     private var homeClockPages = false
 
     private struct Stored: Codable {
@@ -117,6 +125,9 @@ final class AppSettings: ObservableObject {
         var panZoom: Bool?
         /// Set once the Home Clock pages update has run on this iPad.
         var homeClockPages: Bool?
+        var grandparentMode: Bool?
+        var allowRemote: Bool?
+        var screenID: String?
     }
 
     private let key = "settings.v1"
@@ -150,6 +161,9 @@ final class AppSettings: ObservableObject {
         festivalThemes = s.festivalThemes ?? true
         panZoom = s.panZoom ?? true
         homeClockPages = s.homeClockPages ?? false
+        grandparentMode = s.grandparentMode ?? false
+        allowRemote = s.allowRemote ?? true
+        screenID = s.screenID ?? UUID().uuidString
         if !homeClockPages {
             // One-time update: turn on the new pages and show photos large, without a frame.
             pages = ScreenPage.allCases.filter { pages.contains($0) || ScreenPage.starter.contains($0) }
@@ -168,11 +182,46 @@ final class AppSettings: ObservableObject {
                        readMessages: readMessages, feeds: feeds, slideSeconds: slideSeconds,
                        pages: pages, rotatePages: rotatePages, pageSeconds: pageSeconds, hiddenHomes: hiddenHomes,
                        sharedAlbumID: sharedAlbumID, frameStyle: frameStyle, festivalThemes: festivalThemes,
-                       panZoom: panZoom, homeClockPages: homeClockPages)
+                       panZoom: panZoom, homeClockPages: homeClockPages,
+                       grandparentMode: grandparentMode, allowRemote: allowRemote, screenID: screenID)
         if let data = try? JSONEncoder().encode(s) {
             UserDefaults.standard.set(data, forKey: key)
         }
         shareWithExtension()
+        if !applyingRemote { onChange?() }
+    }
+
+    /// true while settings sent by the family are being applied.
+    private var applyingRemote = false
+
+    /// The settings the family can see and change for this screen.
+    func screenConfig(changedBy: String) -> ScreenConfig {
+        ScreenConfig(screenID: screenID, name: homeName, grandparentMode: grandparentMode, allowRemote: allowRemote,
+                     language: language, cityA: cityA, cityB: cityB, contactName: contactName,
+                     contactAddress: contactAddress, audioOnly: audioOnly, nightFrom: nightFrom, nightTo: nightTo,
+                     hourlyChime: hourlyChime, readMessages: readMessages, pages: pages, rotatePages: rotatePages,
+                     pageSeconds: pageSeconds, slideSeconds: slideSeconds, changedAt: Date(), changedBy: changedBy)
+    }
+
+    /// Applies settings an adult child changed from their iPad. Grandparents'
+    /// mode and the permission itself are only changed on this iPad.
+    func apply(_ c: ScreenConfig) {
+        applyingRemote = true
+        defer { save(); applyingRemote = false }
+        language = c.language
+        cityA = c.cityA
+        cityB = c.cityB
+        contactName = c.contactName
+        contactAddress = c.contactAddress
+        audioOnly = c.audioOnly
+        nightFrom = c.nightFrom
+        nightTo = c.nightTo
+        hourlyChime = c.hourlyChime
+        readMessages = c.readMessages
+        pages = c.pages.isEmpty ? [.home] : c.pages
+        rotatePages = c.rotatePages
+        pageSeconds = c.pageSeconds
+        slideSeconds = c.slideSeconds
     }
 
     /// The Share Extension signs photos with this home's name and speaks its language.

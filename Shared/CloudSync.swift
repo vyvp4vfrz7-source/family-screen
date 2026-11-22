@@ -15,6 +15,8 @@ final class CloudSync {
         var photos: [FamilyPhoto] = []
         var messages: [FamilyMessage] = []
         var deleted: [String] = []
+        /// Screen settings as JSON text (decoded by the app; the Share Extension never reads them).
+        var screens: [String] = []
         var assetFiles: [String: URL] = [:]
     }
 
@@ -124,6 +126,14 @@ final class CloudSync {
         try await saveRecords([record])
     }
 
+    /// A screen's settings, stored as one JSON text field.
+    func saveScreen(recordName: String, json: String) async throws {
+        try await ensureZone()
+        let record = CKRecord(recordType: "Screen", recordID: CKRecord.ID(recordName: recordName, zoneID: zoneID))
+        record["config"] = json
+        try await saveRecords([record])
+    }
+
     /// Only the hearts field is sent, so it never clashes with other edits.
     func saveHearts(messageID: String, hearts: [String]) async throws {
         let record = CKRecord(recordType: "Message", recordID: CKRecord.ID(recordName: messageID, zoneID: zoneID))
@@ -188,6 +198,8 @@ final class CloudSync {
         case "Message":
             changes.messages.append(FamilyMessage(id: id, text: record["text"] as? String ?? "", author: author,
                                                   date: date, hearts: record["hearts"] as? [String] ?? []))
+        case "Screen":
+            if let text = record["config"] as? String { changes.screens.append(text) }
         default:
             break
         }

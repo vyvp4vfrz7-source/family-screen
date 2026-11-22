@@ -91,7 +91,7 @@ struct DashboardView: View {
                 withAnimation { pageIndex = (pageIndex + 1) % settings.pages.count }
             }
             HStack(spacing: 12) {
-                CallOrb { sheet = .settings }
+                CallOrb { if !settings.grandparentMode { sheet = .settings } }
                 NewsStrip(headlines: news.headlines) { sheet = .article($0) }
                 toolButtons
             }
@@ -105,7 +105,7 @@ struct DashboardView: View {
     private func pageView(_ page: ScreenPage) -> some View {
         switch page {
         case .home: homePage.padding(.bottom, 24)
-        case .photos: PhotoPanel(events: calendar.events, onAdd: { sheet = .addPhoto }, bigTime: true).padding(.bottom, 24)
+        case .photos: PhotoPanel(events: calendar.events, onAdd: { sheet = .addPhoto }, bigTime: true, canEdit: !settings.grandparentMode).padding(.bottom, 24)
         case .clocks: TwoHomesPage(weatherA: weatherA, weatherB: weatherB).padding(.bottom, 24)
         case .calendar: TwoWeekPage(feed: calendar).padding(.bottom, 24)
         case .birthdays: BirthdaysPage(feed: calendar).padding(.bottom, 24)
@@ -116,7 +116,8 @@ struct DashboardView: View {
 
     private var homePage: some View {
         HomePage(weatherA: weatherA, weatherB: weatherB, events: calendar.events,
-                 onAddPhoto: { sheet = .addPhoto }, onEditNotice: { sheet = .notice })
+                 onAddPhoto: { sheet = .addPhoto },
+                 onEditNotice: { if !settings.grandparentMode { sheet = .notice } })
     }
 
     private var toolButtons: some View {
@@ -128,11 +129,15 @@ struct DashboardView: View {
                     .background(Circle().fill(Color.white.opacity(0.1)))
             }
             .accessibilityLabel(settings.t(.readNow))
-            Button { sheet = .settings } label: {
-                Image(systemName: "gearshape.fill").font(.title2).frame(width: 60, height: 60)
-                    .background(Circle().fill(Color.white.opacity(0.1)))
+            if settings.grandparentMode {
+                HoldForSettingsButton { sheet = .settings }
+            } else {
+                Button { sheet = .settings } label: {
+                    Image(systemName: "gearshape.fill").font(.title2).frame(width: 60, height: 60)
+                        .background(Circle().fill(Color.white.opacity(0.1)))
+                }
+                .accessibilityLabel(settings.t(.settings))
             }
-            .accessibilityLabel(settings.t(.settings))
         }
         .foregroundColor(.white)
     }
