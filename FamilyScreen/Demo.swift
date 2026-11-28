@@ -45,7 +45,7 @@ enum Demo {
         ("New trains on the Elizabeth line cut journey times", "Evening Standard"),
         ("Schools trial four-day week in pilot scheme", "BBC News"),
         ("Typhoon season ends quietly for the first time in a decade", "RTHK"),
-    ].map { Headline(title: $0.0, source: $0.1, link: URL(string: "https://example.com/")!) }
+    ].enumerated().map { i, h in Headline(title: h.0, source: h.1, link: URL(string: "https://example.com/news/\(i)")!) }
 
     @MainActor
     static func seedIfNeeded() {
