@@ -232,3 +232,75 @@ struct FamilySection: View {
     }
 }
 #endif
+
+/// First launch: language, home name and the two cities. Everything else keeps its default.
+struct WelcomeView: View {
+    @ObservedObject private var settings = AppSettings.shared
+    @State private var queryA = ""
+    @State private var queryB = ""
+    @State private var cityMessage = ""
+    @State private var finding = false
+
+    var body: some View {
+        NavigationView {
+            Form {
+                Section(footer: Text(settings.t(.welcomeLead))) {
+                    Text(settings.t(.welcomeTitle)).font(.largeTitle.weight(.bold)).padding(.vertical, 8)
+                }
+                Section(header: Text(settings.t(.language))) {
+                    Picker(settings.t(.language), selection: $settings.language) {
+                        ForEach(AppLanguage.allCases) { Text($0.nativeName).tag($0) }
+                    }
+                    .pickerStyle(.inline).labelsHidden()
+                }
+                Section(header: Text(settings.t(.thisHome))) {
+                    TextField(settings.t(.homeName), text: $settings.homeName)
+                }
+                Section(header: Text(settings.t(.cities)), footer: Text(cityMessage)) {
+                    cityRow(settings.t(.cityA), current: settings.cityA.name, query: $queryA) { settings.cityA = $0 }
+                    cityRow(settings.t(.cityB), current: settings.cityB.name, query: $queryB) { settings.cityB = $0 }
+                }
+                Section(footer: Text(settings.t(.welcomeLater))) {
+                    Button {
+                        Task { await finish() }
+                    } label: {
+                        Text(settings.t(.welcomeStart)).font(.headline).frame(maxWidth: .infinity)
+                    }
+                    .disabled(finding)
+                }
+            }
+            .navigationBarHidden(true)
+        }
+        .navigationViewStyle(.stack)
+    }
+
+    /// Looks up any city typed but not yet found, then shows the screen.
+    private func finish() async {
+        finding = true
+        if !queryA.isEmpty, let c = await City.find(queryA) { settings.cityA = c }
+        if !queryB.isEmpty, let c = await City.find(queryB) { settings.cityB = c }
+        finding = false
+        settings.didSetup = true
+    }
+
+    private func cityRow(_ label: String, current: String, query: Binding<String>,
+                         set: @escaping (City) -> Void) -> some View {
+        HStack {
+            Text(label).foregroundColor(.secondary)
+            TextField(current, text: query).disableAutocorrection(true)
+            Button(settings.t(.find)) {
+                let q = query.wrappedValue
+                Task {
+                    if let city = await City.find(q) {
+                        set(city)
+                        query.wrappedValue = ""
+                        cityMessage = "\(city.name) · \(city.timeZoneID)"
+                    } else {
+                        cityMessage = settings.t(.notFound)
+                    }
+                }
+            }
+            .disabled(query.wrappedValue.isEmpty)
+        }
+    }
+}
