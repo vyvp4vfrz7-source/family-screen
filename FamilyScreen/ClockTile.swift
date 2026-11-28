@@ -12,16 +12,15 @@ struct ClockTile: View {
         GeometryReader { geo in
             let h = geo.size.height
             let w = geo.size.width
-            ZStack(alignment: .bottom) {
-                HStack(alignment: .top, spacing: 0) {
+            HStack(alignment: .top, spacing: 0) {
+                VStack(alignment: .leading, spacing: h * 0.04) {
                     clock(h: h)
-                    Spacer(minLength: 12)
-                    currentWeather(h: h)
-                        .frame(maxWidth: w * 0.42, alignment: .trailing)
+                    NoticePill(onEdit: onEditNotice, fontSize: max(h * 0.05, 16))
+                        .frame(maxWidth: w * 0.4, alignment: .leading)
                 }
-                NoticePill(onEdit: onEditNotice, fontSize: max(h * 0.05, 16))
-                    .frame(maxWidth: w * 0.36)
-                    .padding(.bottom, h * 0.02)
+                Spacer(minLength: 12)
+                currentWeather(h: h)
+                    .frame(maxWidth: w * 0.42, alignment: .trailing)
             }
             .padding(.horizontal, h * 0.08)
             .padding(.vertical, h * 0.06)
@@ -58,7 +57,6 @@ struct ClockTile: View {
                     .font(.system(size: h * 0.065))
                     .foregroundColor(.white.opacity(0.8))
                     .lineLimit(1).minimumScaleFactor(0.6)
-                Spacer(minLength: h * 0.12)
             }
             .fixedSize(horizontal: true, vertical: false)
         }
