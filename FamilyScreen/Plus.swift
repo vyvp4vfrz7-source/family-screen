@@ -4,7 +4,8 @@ import StoreKit
 /// Family Screen Plus: a one-off in-app purchase that unlocks the extra pages.
 /// To change what is paid, edit `ScreenPage.plusPages` only.
 extension ScreenPage {
-    static let plusPages: Set<ScreenPage> = [.calendar, .birthdays, .pinkClock, .news]
+    /// Empty = everything free (Billy's choice for v1, 2026-11-28). Later e.g. [.calendar, .birthdays, .pinkClock, .news].
+    static let plusPages: Set<ScreenPage> = []
     var needsPlus: Bool { ScreenPage.plusPages.contains(self) }
 }
 

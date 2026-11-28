@@ -51,7 +51,7 @@ struct SettingsView: View {
                     }
                 }
 
-                PlusSection()
+                if !ScreenPage.plusPages.isEmpty { PlusSection() }
 
                 Section(header: Text(settings.t(.pages))) {
                     ForEach(ScreenPage.allCases) { page in
