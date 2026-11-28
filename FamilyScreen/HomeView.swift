@@ -24,15 +24,27 @@ struct HomePage: View {
     var onEditNotice: () -> Void
 
     var body: some View {
+        // Same layout as the Home Clock dashboard: a big clock and weather tile on
+        // top; the 12-hour and 5-day forecasts and the family photo below.
         GeometryReader { geo in
             let gap: CGFloat = 12
             let landscape = geo.size.width > geo.size.height
             VStack(spacing: gap) {
-                HeroBar(weatherA: weatherA, weatherB: weatherB, showForecast: landscape, onEditNotice: onEditNotice)
-                    .frame(height: geo.size.height * (landscape ? 0.25 : 0.17))
-                PhotoPanel(events: events, onAdd: onAddPhoto)
-                if !landscape {
-                    DailyCard(weather: weatherA).frame(height: geo.size.height * 0.2)
+                ClockTile(weather: weatherA, onEditNotice: onEditNotice)
+                    .frame(height: geo.size.height * (landscape ? 0.47 : 0.3))
+                if landscape {
+                    HStack(spacing: gap) {
+                        VStack(spacing: gap) {
+                            HourlyCard(weather: weatherA)
+                            DailyCard(weather: weatherA)
+                        }
+                        .frame(width: geo.size.width * 0.58)
+                        PhotoPanel(events: events, onAdd: onAddPhoto)
+                    }
+                } else {
+                    HourlyCard(weather: weatherA).frame(height: geo.size.height * 0.16)
+                    DailyCard(weather: weatherA).frame(height: geo.size.height * 0.16)
+                    PhotoPanel(events: events, onAdd: onAddPhoto)
                 }
             }
         }
@@ -280,7 +292,7 @@ struct DailyCard: View {
         VStack(alignment: .leading, spacing: 10) {
             SectionLabel(text: settings.t(.next5Days))
             HStack(spacing: 10) {
-                let days = weather?.daily ?? []
+                let days = Array((weather?.daily ?? []).prefix(5))
                 if days.isEmpty {
                     Text("–").foregroundColor(Theme.label).frame(maxWidth: .infinity, maxHeight: .infinity)
                 }

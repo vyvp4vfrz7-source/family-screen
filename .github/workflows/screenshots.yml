@@ -32,6 +32,11 @@ jobs:
           xcrun simctl privacy $UDID grant calendar $BID || true
           xcrun simctl status_bar $UDID override --time 9:41 || true
           mkdir -p shots
+          # First launch without sample data shows the welcome screen.
+          xcrun simctl launch $UDID $BID
+          sleep 10
+          xcrun simctl io $UDID screenshot shots/portrait-0-welcome.png
+          xcrun simctl terminate $UDID $BID
           for orient in portrait landscape; do
             ARGS="-demoData"; [ $orient = landscape ] && ARGS="-demoData -landscape"
             xcrun simctl launch $UDID $BID $ARGS

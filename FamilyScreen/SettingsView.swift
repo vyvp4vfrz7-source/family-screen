@@ -7,6 +7,7 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var settings = AppSettings.shared
     @ObservedObject private var store = FamilyStore.shared
+    @ObservedObject private var plus = PlusStore.shared
     @State private var queryA = ""
     @State private var queryB = ""
     @State private var cityMessage = ""
@@ -50,11 +51,23 @@ struct SettingsView: View {
                     }
                 }
 
+                if !ScreenPage.plusPages.isEmpty { PlusSection() }
+
                 Section(header: Text(settings.t(.pages))) {
                     ForEach(ScreenPage.allCases) { page in
-                        Toggle(settings.t(page.title), isOn: Binding(
-                            get: { settings.pages.contains(page) },
-                            set: { settings.togglePage(page, on: $0) }))
+                        let locked = page.needsPlus && !plus.isPlus
+                        Toggle(isOn: Binding(
+                            get: { settings.pages.contains(page) && !locked },
+                            set: { settings.togglePage(page, on: $0) })) {
+                            HStack {
+                                Text(settings.t(page.title))
+                                if locked {
+                                    Label(settings.t(.plusLocked), systemImage: "lock.fill")
+                                        .font(.caption).foregroundColor(.secondary)
+                                }
+                            }
+                        }
+                        .disabled(locked)
                     }
                     Toggle(settings.t(.rotatePages), isOn: $settings.rotatePages)
                     if settings.rotatePages {
