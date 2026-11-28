@@ -17,6 +17,7 @@ struct ClockTile: View {
                     clock(h: h)
                     NoticePill(onEdit: onEditNotice, fontSize: max(h * 0.05, 16))
                         .frame(maxWidth: w * 0.4, alignment: .leading)
+                    Spacer(minLength: 0)
                 }
                 Spacer(minLength: 12)
                 currentWeather(h: h)
@@ -38,7 +39,6 @@ struct ClockTile: View {
             let date = context.date
             let lang = settings.language
             VStack(alignment: .leading, spacing: h * 0.01) {
-                Spacer(minLength: 0)
                 HStack(alignment: .lastTextBaseline, spacing: h * 0.02) {
                     Text(Format.time(date, city: settings.cityA, language: lang))
                         .font(.system(size: h * 0.42, weight: .light)).monospacedDigit()
