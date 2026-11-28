@@ -14,6 +14,7 @@ final class NewsFeedReader: ObservableObject {
     @Published var headlines: [Headline] = []
 
     func load(_ feeds: [NewsFeed]) async {
+        if Demo.isOn { headlines = Demo.headlines; return }
         var perFeed: [[Headline]] = []
         for feed in feeds {
             guard let url = URL(string: feed.url),

@@ -77,7 +77,7 @@ enum WeatherProvider {
             HourForecast(time: $0.date, temperature: $0.temperature.converted(to: .celsius).value,
                          symbol: $0.symbolName, rainChance: $0.precipitationChance)
         }
-        let days = daily.forecast.dropFirst().prefix(5).map {
+        let days = daily.forecast.dropFirst().prefix(13).map {
             DayForecast(date: $0.date, high: $0.highTemperature.converted(to: .celsius).value,
                         low: $0.lowTemperature.converted(to: .celsius).value,
                         symbol: $0.symbolName, rainChance: $0.precipitationChance)
@@ -129,7 +129,7 @@ enum WeatherProvider {
             .init(name: "daily", value: "temperature_2m_max,temperature_2m_min,weather_code,precipitation_probability_max,sunrise,sunset"),
             .init(name: "timezone", value: "auto"),
             .init(name: "timeformat", value: "unixtime"),
-            .init(name: "forecast_days", value: "6"),
+            .init(name: "forecast_days", value: "14"),
         ]
         guard let url = c.url,
               let response = try? await URLSession.shared.data(from: url),
@@ -150,7 +150,7 @@ enum WeatherProvider {
         }
         let d = r.daily
         var days: [DayForecast] = []
-        for i in d.time.indices.dropFirst().prefix(5) {
+        for i in d.time.indices.dropFirst().prefix(13) {
             guard let hi = d.temperature_2m_max[safe: i] ?? nil, let lo = d.temperature_2m_min[safe: i] ?? nil else { continue }
             let code = (d.weather_code?[safe: i] ?? nil) ?? 3
             days.append(DayForecast(date: Date(timeIntervalSince1970: d.time[i]), high: hi, low: lo,

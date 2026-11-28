@@ -100,8 +100,11 @@ struct PinkClockPage: View {
 
 // MARK: - Two-week calendar
 
+/// Two weeks of days, like the Home Clock calendar page: each day shows its
+/// weather, then the events as coloured chips, or "Free" when nothing is on.
 struct TwoWeekPage: View {
     @ObservedObject var feed: CalendarFeed
+    var weather: WeatherNow?
     @ObservedObject private var settings = AppSettings.shared
 
     private var days: [Date] {
@@ -109,9 +112,15 @@ struct TwoWeekPage: View {
         return (0..<14).compactMap { Calendar.current.date(byAdding: .day, value: $0, to: start) }
     }
 
+    private var range: String {
+        guard let first = days.first, let last = days.last else { return "" }
+        return Format.string(first, template: "dMMM", language: settings.language) + " – "
+            + Format.string(last, template: "dMMM", language: settings.language)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            PageTitle(text: settings.t(.next2Weeks))
+            PageTitle(key: .next2Weeks, trailing: range)
             if feed.denied {
                 Text(settings.t(.calendarDenied)).foregroundColor(Theme.label)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -133,6 +142,14 @@ struct TwoWeekPage: View {
         .foregroundColor(.white)
     }
 
+    private func forecast(for day: Date) -> DayForecast? {
+        guard let w = weather else { return nil }
+        if Calendar.current.isDateInToday(day), let hi = w.high, let lo = w.low {
+            return DayForecast(date: day, high: hi, low: lo, symbol: w.symbol, rainChance: w.rainChance)
+        }
+        return w.daily?.first { Calendar.current.isDate($0.date, inSameDayAs: day) }
+    }
+
     private func dayCell(_ day: Date) -> some View {
         let cal = Calendar.current
         let today = cal.isDateInToday(day)
@@ -141,12 +158,32 @@ struct TwoWeekPage: View {
         let weekday = cal.component(.weekday, from: day)   // 1 = Sunday, 7 = Saturday
         let red = !holidays.isEmpty || weekday == 1
         let tint: Color? = red ? DayColors.holiday : (weekday == 7 ? DayColors.saturday : nil)
-        return VStack(alignment: .leading, spacing: 4) {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text(Format.string(day, template: "EEE", language: settings.language))
-                    .font(.subheadline.bold()).foregroundColor(today ? Theme.notice : (tint ?? Theme.label))
+        let maxItems = 3
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .center, spacing: 6) {
                 Text(Format.string(day, template: "d", language: settings.language))
-                    .font(.title2.bold()).foregroundColor(tint ?? .white)
+                    .font(.system(size: 30, weight: .semibold, design: .rounded))
+                    .foregroundColor(tint ?? .white)
+                    .lineLimit(1).fixedSize()
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(today ? settings.t(.today) : Format.string(day, template: "EEE", language: settings.language))
+                        .font(.subheadline.bold()).foregroundColor(today ? Theme.notice : (tint ?? .white))
+                    Text(Format.string(day, template: "MMM", language: settings.language))
+                        .font(.caption).foregroundColor(Theme.label)
+                }
+                .lineLimit(1).minimumScaleFactor(0.7)
+            }
+            if let f = forecast(for: day) {
+                HStack(spacing: 4) {
+                    CuteWeatherIcon(symbol: f.symbol, size: 26)
+                    Text("\(Int(f.high.rounded()))°").font(.caption.bold())
+                        + Text(" \(Int(f.low.rounded()))°").font(.caption).foregroundColor(Theme.label)
+                    Spacer(minLength: 0)
+                    if let r = f.rainChance, r >= 0.2 {
+                        Text("\(Int((r * 100).rounded()))%").font(.caption.bold()).foregroundColor(Theme.rain)
+                    }
+                }
+                .lineLimit(1).minimumScaleFactor(0.7)
             }
             ForEach(Array(Set(holidays.map { $0.title(settings.language) })).sorted(), id: \.self) { name in
                 let flags = holidays.filter { $0.title(settings.language) == name }.map(\.country.flag).joined()
@@ -154,30 +191,45 @@ struct TwoWeekPage: View {
                     .font(.caption.weight(.semibold)).foregroundColor(DayColors.holidayText)
                     .lineLimit(2).minimumScaleFactor(0.8)
             }
-            ForEach(items.prefix(4)) { e in
-                HStack(alignment: .top, spacing: 4) {
-                    if let emoji = EventEmoji.for(e.title) { BouncyEmoji(emoji: emoji) }
-                    VStack(alignment: .leading, spacing: 0) {
-                        if !e.allDay {
-                            Text(Format.time(e.start, language: settings.language))
-                                .font(.caption2).foregroundColor(Theme.cool)
-                        }
-                        Text(e.title).font(.caption.weight(.semibold)).lineLimit(2)
-                    }
-                }
+            ForEach(items.prefix(maxItems)) { e in eventChip(e) }
+            if items.count > maxItems {
+                Text("+\(items.count - maxItems)").font(.caption.bold()).foregroundColor(Theme.label)
             }
-            if items.count > 4 {
-                Text("+\(items.count - 4)").font(.caption).foregroundColor(Theme.label)
+            if items.isEmpty && holidays.isEmpty {
+                Text(settings.t(.freeDay)).font(.caption).foregroundColor(Theme.label)
             }
             Spacer(minLength: 0)
         }
-        .padding(10)
+        .padding(9)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(ZStack {
             RoundedRectangle(cornerRadius: 16).fill(today ? Theme.tile : Theme.card)
-            RoundedRectangle(cornerRadius: 16).fill((tint ?? .clear).opacity(today ? 0 : 0.16))
+            RoundedRectangle(cornerRadius: 16)
+                .fill(LinearGradient(colors: [(tint ?? .clear).opacity(0.28), .clear], startPoint: .top, endPoint: .center))
         })
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(today ? Theme.notice.opacity(0.9) : .clear, lineWidth: 3))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(today ? Theme.notice.opacity(0.9) : Color.white.opacity(0.05),
+                                                          lineWidth: today ? 3 : 1))
+    }
+
+    private func eventChip(_ e: UpcomingEvent) -> some View {
+        let color = SoftColors.for(e.title)
+        return VStack(alignment: .leading, spacing: 1) {
+            if !e.allDay {
+                Text(Format.time(e.start, language: settings.language))
+                    .font(.caption2.bold()).foregroundColor(Theme.notice)
+            }
+            HStack(alignment: .top, spacing: 2) {
+                Text(e.title).font(.caption.weight(.semibold)).lineLimit(2)
+                Spacer(minLength: 0)
+                if let emoji = EventEmoji.for(e.title) { BouncyEmoji(emoji: emoji, size: 14) }
+            }
+        }
+        .padding(.vertical, 5).padding(.leading, 9).padding(.trailing, 5)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 10).fill(color.opacity(0.32)))
+        .overlay(alignment: .leading) {
+            RoundedRectangle(cornerRadius: 2).fill(color).frame(width: 3).padding(.vertical, 5).padding(.leading, 3)
+        }
     }
 }
 
@@ -186,6 +238,21 @@ enum DayColors {
     static let saturday = Color(red: 0.50, green: 0.70, blue: 1.0)
     static let holiday = Color(red: 1.0, green: 0.48, blue: 0.48)
     static let holidayText = Color(red: 1.0, green: 0.70, blue: 0.70)
+}
+
+/// A steady colour for a name (event, news source, person), so the same
+/// thing keeps the same colour from day to day.
+enum SoftColors {
+    static let palette: [Color] = [
+        Color(red: 0.36, green: 0.56, blue: 0.96), Color(red: 0.30, green: 0.70, blue: 0.46),
+        Color(red: 0.95, green: 0.46, blue: 0.42), Color(red: 0.66, green: 0.46, blue: 0.92),
+        Color(red: 0.96, green: 0.64, blue: 0.30), Color(red: 0.28, green: 0.74, blue: 0.80),
+        Color(red: 0.93, green: 0.48, blue: 0.70),
+    ]
+    static func `for`(_ text: String) -> Color {
+        let sum = text.unicodeScalars.reduce(0) { $0 &+ Int($1.value) }
+        return palette[abs(sum) % palette.count]
+    }
 }
 
 /// Little pictures for common family events, like the old web page.
@@ -219,36 +286,64 @@ struct BouncyEmoji: View {
     }
 }
 
+/// Page heading like the Home Clock pages: the title in bold, the English
+/// name in light text beside it (when the screen is in another language),
+/// and a small note on the right.
 struct PageTitle: View {
     var text: String
+    var subtitle: String? = nil
+    var trailing: String? = nil
+
+    init(text: String, subtitle: String? = nil, trailing: String? = nil) {
+        self.text = text; self.subtitle = subtitle; self.trailing = trailing
+    }
+
+    init(key: L, trailing: String? = nil) {
+        let language = AppSettings.shared.language
+        self.init(text: key.text(language), subtitle: language == .english ? nil : key.text(.english), trailing: trailing)
+    }
+
     var body: some View {
-        Text(text).font(.system(size: 30, weight: .bold)).foregroundColor(.white)
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            Text(text).font(.system(size: 30, weight: .heavy)).foregroundColor(.white)
+            if let subtitle = subtitle {
+                Text(subtitle).font(.system(size: 20)).foregroundColor(.white.opacity(0.55))
+            }
+            Spacer(minLength: 8)
+            if let trailing = trailing, !trailing.isEmpty {
+                Text(trailing).font(.headline).foregroundColor(.white.opacity(0.7))
+            }
+        }
+        .lineLimit(1).minimumScaleFactor(0.7)
     }
 }
 
 // MARK: - Birthday countdown
 
+/// Like the Home Clock birthday page: the next birthday large, with a ring
+/// counting down the days, and the ones after it in a list.
 struct BirthdaysPage: View {
     @ObservedObject var feed: CalendarFeed
     @ObservedObject private var settings = AppSettings.shared
+    private let pink = Color(red: 0.98, green: 0.70, blue: 0.80)
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            PageTitle(text: settings.t(.birthdays))
+            PageTitle(key: .birthdays, trailing: Format.string(Date(), template: "EEEEdMMMM", language: settings.language))
             if feed.denied {
                 message(settings.t(.calendarDenied))
             } else if let next = feed.birthdays.first {
                 GeometryReader { geo in
                     let wide = geo.size.width > geo.size.height
-                    let rest = Array(feed.birthdays.dropFirst().prefix(wide ? 8 : 6))
+                    let rest = Array(feed.birthdays.dropFirst().prefix(wide ? 6 : 4))
                     if wide {
-                        HStack(spacing: 12) {
-                            hero(next).frame(width: geo.size.width * 0.45)
+                        HStack(alignment: .top, spacing: 12) {
+                            hero(next).frame(width: geo.size.width * 0.55)
                             list(rest)
                         }
                     } else {
                         VStack(spacing: 12) {
-                            hero(next).frame(height: geo.size.height * 0.45)
+                            hero(next).frame(height: geo.size.height * 0.55)
                             list(rest)
                         }
                     }
@@ -271,77 +366,116 @@ struct BirthdaysPage: View {
     }
 
     private func hero(_ b: Birthday) -> some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 22)
-                .fill(LinearGradient(colors: [Color(red: 0.45, green: 0.22, blue: 0.42), Color(red: 0.20, green: 0.16, blue: 0.32)],
-                                     startPoint: .topLeading, endPoint: .bottomTrailing))
-            Balloons()
-            VStack(spacing: 10) {
-                BouncyEmoji(emoji: "🎂", size: 80)
-                Text(b.name).font(.system(size: 44, weight: .bold)).lineLimit(1).minimumScaleFactor(0.5)
-                Text(countdown(b.date)).font(.system(size: 34, weight: .semibold)).foregroundColor(Theme.notice)
-                Text(Format.string(b.date, template: "EEEEdMMMM", language: settings.language))
-                    .font(.title3).foregroundColor(.white.opacity(0.7))
+        let days = daysUntil(b.date)
+        return GeometryReader { geo in
+            let ring = min(geo.size.width * 0.42, geo.size.height * 0.5, 300)
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: 18) {
+                    Avatar(name: b.name, size: min(96, geo.size.height * 0.16))
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(b.name).font(.system(size: 46, weight: .heavy)).lineLimit(1).minimumScaleFactor(0.5)
+                        Text(countdown(b.date)).font(.title3.weight(.semibold)).foregroundColor(pink)
+                    }
+                }
+                Spacer(minLength: 8)
+                HStack(spacing: 28) {
+                    ZStack {
+                        Circle().stroke(Color.white.opacity(0.1), lineWidth: 12)
+                        Circle().trim(from: 0, to: CGFloat(max(0.02, 1 - Double(days) / 365)))
+                            .stroke(pink, style: StrokeStyle(lineWidth: 12, lineCap: .round))
+                            .rotationEffect(.degrees(-90))
+                        if days == 0 {
+                            BouncyEmoji(emoji: "🎉", size: ring * 0.4)
+                        } else {
+                            VStack(spacing: -4) {
+                                Text("\(days)").font(.system(size: ring * 0.36, weight: .bold, design: .rounded))
+                                    .lineLimit(1).minimumScaleFactor(0.5)
+                                Text(settings.t(.daysUnit)).font(.title3).foregroundColor(Theme.label)
+                            }
+                        }
+                    }
+                    .frame(width: ring, height: ring)
+                    VStack(alignment: .leading, spacing: 8) {
+                        BouncyEmoji(emoji: "🎂", size: 64)
+                        Text(Format.string(b.date, template: "dMMMM", language: settings.language))
+                            .font(.system(size: 28, weight: .bold))
+                        Text(Format.string(b.date, template: "EEEE", language: settings.language))
+                            .font(.title3).foregroundColor(Theme.label)
+                    }
+                    .lineLimit(1).minimumScaleFactor(0.6)
+                }
+                .frame(maxWidth: .infinity)
+                Spacer(minLength: 8)
             }
-            .padding(20)
+            .padding(26)
+            .frame(width: geo.size.width, height: geo.size.height, alignment: .topLeading)
         }
-        .clipShape(RoundedRectangle(cornerRadius: 22))
+        .background(
+            RoundedRectangle(cornerRadius: 22)
+                .fill(LinearGradient(colors: [Color(red: 0.30, green: 0.18, blue: 0.30), Theme.card],
+                                     startPoint: .topLeading, endPoint: .bottom))
+        )
+        .overlay(RoundedRectangle(cornerRadius: 22).stroke(Color.white.opacity(0.06)))
     }
 
     private func list(_ items: [Birthday]) -> some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 10) {
             ForEach(items) { b in
-                HStack {
-                    Text("🎈").font(.title2)
-                    Text(b.name).font(.title3.weight(.semibold)).lineLimit(1)
+                HStack(spacing: 14) {
+                    Avatar(name: b.name, size: 52)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(b.name).font(.title3.weight(.bold)).lineLimit(1)
+                        Text(Format.string(b.date, template: "EEEdMMMM", language: settings.language))
+                            .font(.subheadline).foregroundColor(Theme.label).lineLimit(1)
+                    }
                     Spacer()
-                    VStack(alignment: .trailing, spacing: 0) {
-                        Text(countdown(b.date)).font(.headline).foregroundColor(Theme.notice)
-                        Text(Format.string(b.date, template: "dMMM", language: settings.language))
-                            .font(.caption).foregroundColor(Theme.label)
+                    VStack(alignment: .trailing, spacing: -2) {
+                        Text("\(daysUntil(b.date))").font(.system(size: 36, weight: .bold, design: .rounded))
+                        Text(settings.t(.daysUnit)).font(.caption).foregroundColor(Theme.label)
                     }
                 }
-                .padding(.horizontal, 16)
-                .frame(maxHeight: 64)
-                .background(RoundedRectangle(cornerRadius: 16).fill(Theme.card))
+                .padding(.horizontal, 16).padding(.vertical, 10)
+                .background(RoundedRectangle(cornerRadius: 18).fill(Theme.card))
+                .overlay(RoundedRectangle(cornerRadius: 18).stroke(Color.white.opacity(0.06)))
             }
             Spacer(minLength: 0)
         }
     }
 
-    private func countdown(_ date: Date) -> String {
+    private func daysUntil(_ date: Date) -> Int {
         let cal = Calendar.current
-        let days = cal.dateComponents([.day], from: cal.startOfDay(for: Date()), to: cal.startOfDay(for: date)).day ?? 0
+        return max(0, cal.dateComponents([.day], from: cal.startOfDay(for: Date()), to: cal.startOfDay(for: date)).day ?? 0)
+    }
+
+    private func countdown(_ date: Date) -> String {
+        let days = daysUntil(date)
         if days <= 0 { return settings.t(.birthdayToday) }
         if days == 1 { return settings.t(.tomorrow) }
         return String(format: settings.t(.inDays), days)
     }
 }
 
-/// Balloons floating up behind the next birthday.
-private struct Balloons: View {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+/// A round badge with the first letter of a name, in that name's colour.
+struct Avatar: View {
+    var name: String
+    var size: CGFloat
 
     var body: some View {
-        GeometryReader { geo in
-            TimelineView(.animation(minimumInterval: 1 / 20, paused: reduceMotion)) { context in
-                let t = context.date.timeIntervalSinceReferenceDate
-                ZStack {
-                    ForEach(0..<5) { i in
-                        let phase = (t / 9 + Double(i) / 5).truncatingRemainder(dividingBy: 1)
-                        Text(["🎈", "🎈", "🎉", "🎈", "✨"][i]).font(.system(size: 34))
-                            .position(x: geo.size.width * (0.1 + 0.2 * CGFloat(i)) + 10 * CGFloat(sin(t + Double(i))),
-                                      y: geo.size.height * (1.1 - 1.2 * CGFloat(phase)))
-                            .opacity(0.55)
-                    }
-                }
-            }
-        }
+        let color = SoftColors.for(name)
+        Text(String(name.prefix(1)).uppercased())
+            .font(.system(size: size * 0.45, weight: .bold, design: .rounded))
+            .foregroundColor(.white)
+            .frame(width: size, height: size)
+            .background(Circle().fill(LinearGradient(colors: [color.opacity(0.95), color.opacity(0.6)],
+                                                     startPoint: .top, endPoint: .bottom)))
+            .overlay(Circle().stroke(Color.white.opacity(0.35), lineWidth: 2))
     }
 }
 
 // MARK: - Two homes: time and weather
 
+/// Like the Home Clock two-city page: each home has its name and clock on
+/// top, and a pale sky card with the weather in front of a cartoon skyline.
 struct TwoHomesPage: View {
     var weatherA: WeatherNow?
     var weatherB: WeatherNow?
@@ -353,7 +487,6 @@ struct TwoHomesPage: View {
             let layout = wide ? AnyLayoutBox.horizontal : AnyLayoutBox.vertical
             layout.stack {
                 HomePanel(city: settings.cityA, weather: weatherA, other: nil, seed: 3)
-                HomesLink(vertical: wide)
                 HomePanel(city: settings.cityB, weather: weatherB, other: settings.cityA, seed: 11)
             }
         }
@@ -370,30 +503,41 @@ private struct HomePanel: View {
     var body: some View {
         TimelineView(.everyMinute) { context in
             let night = isNight(context.date)
+            let ink = night ? Color.white : Color(red: 0.13, green: 0.17, blue: 0.26)
             VStack(alignment: .leading, spacing: 10) {
                 header(context.date)
                 ZStack(alignment: .bottom) {
                     LinearGradient(colors: night
                                    ? [Color(red: 0.16, green: 0.18, blue: 0.32), Color(red: 0.27, green: 0.28, blue: 0.42)]
-                                   : [Color(red: 0.36, green: 0.55, blue: 0.82), Color(red: 0.62, green: 0.76, blue: 0.92)],
+                                   : sky,
                                    startPoint: .top, endPoint: .bottom)
-                    Skyline(seed: seed, night: night)
+                    Skyline(seed: seed, night: night, water: city.timeZoneID == "Asia/Hong_Kong")
                         .frame(maxHeight: .infinity, alignment: .bottom)
                     Landmarks(city: city, night: night)
-                    weatherInfo
+                    weatherInfo(ink: ink, night: night)
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                         .padding(18)
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 22))
+                .overlay(RoundedRectangle(cornerRadius: 22).stroke(Color.white.opacity(night ? 0.06 : 0.5), lineWidth: 1.5))
             }
             .foregroundColor(.white)
         }
     }
 
+    /// A pale sky, bluer when sunny and greyer when cloudy or wet.
+    private var sky: [Color] {
+        let s = weather?.symbol ?? ""
+        if s.contains("sun") && !s.contains("cloud") {
+            return [Color(red: 0.62, green: 0.80, blue: 0.97), Color(red: 0.86, green: 0.93, blue: 0.99)]
+        }
+        return [Color(red: 0.78, green: 0.84, blue: 0.91), Color(red: 0.90, green: 0.93, blue: 0.96)]
+    }
+
     private func header(_ now: Date) -> some View {
         HStack(alignment: .bottom) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(city.name).font(.system(size: 30, weight: .bold)).lineLimit(1).minimumScaleFactor(0.6)
+                Text(city.name).font(.system(size: 30, weight: .heavy)).lineLimit(1).minimumScaleFactor(0.6)
                 if let other = other { Text(difference(from: other, at: now)).font(.subheadline).foregroundColor(Theme.label) }
             }
             Spacer()
@@ -408,32 +552,37 @@ private struct HomePanel: View {
     }
 
     @ViewBuilder
-    private var weatherInfo: some View {
+    private func weatherInfo(ink: Color, night: Bool) -> some View {
         if let w = weather {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 14) {
-                    CuteWeatherIcon(symbol: w.symbol, size: 120, windy: (w.windKmh ?? 0) >= WeatherWords.windyKmh)
+                    CuteWeatherIcon(symbol: w.symbol, size: 110, windy: (w.windKmh ?? 0) >= WeatherWords.windyKmh)
                     VStack(alignment: .leading, spacing: 0) {
-                        Text("\(Int(w.temperature.rounded()))°").font(.system(size: 76, weight: .bold))
+                        Text("\(Int(w.temperature.rounded()))°").font(.system(size: 84, weight: .bold, design: .rounded))
                         Text(settings.t(WeatherWords.condition(for: w.symbol))).font(.title3.weight(.semibold))
                     }
                 }
-                Text(details(w)).font(.subheadline).foregroundColor(.white.opacity(0.85))
+                Text(details(w)).font(.subheadline.weight(.medium)).opacity(0.8)
                 HStack(spacing: 8) {
                     ForEach((w.daily ?? []).prefix(3), id: \.date) { day in
                         VStack(spacing: 2) {
                             Text(Format.string(day.date, template: "EEE", city: city, language: settings.language))
                                 .font(.caption.bold())
                             CuteWeatherIcon(symbol: day.symbol, size: 38)
-                            Text("\(Int(day.high.rounded()))° \(Int(day.low.rounded()))°").font(.caption)
+                            Text("\(Int(day.high.rounded()))° \(Int(day.low.rounded()))°").font(.caption.bold())
+                            if let r = day.rainChance, r >= 0.2 {
+                                Text("\(Int((r * 100).rounded()))%").font(.caption2.bold()).foregroundColor(Theme.rain)
+                            }
                         }
+                        .frame(minWidth: 64)
                         .padding(8)
-                        .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.15)))
+                        .background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(night ? 0.15 : 0.7)))
                     }
                 }
             }
+            .foregroundColor(ink)
         } else {
-            Text("–").font(.largeTitle)
+            Text("–").font(.largeTitle).foregroundColor(ink)
         }
     }
 
@@ -467,28 +616,46 @@ private struct HomePanel: View {
     }
 }
 
-/// A simple city skyline with lit windows, different for each seed.
+/// A cartoon skyline: green hills and pastel buildings by day, dark towers
+/// with lit windows at night. Different for each seed.
 private struct Skyline: View {
     let seed: Int
     let night: Bool
+    var water = false
+
+    private static let pastels: [Color] = [
+        Color(red: 0.96, green: 0.76, blue: 0.80), Color(red: 0.99, green: 0.88, blue: 0.60),
+        Color(red: 0.66, green: 0.79, blue: 0.96), Color(red: 0.72, green: 0.89, blue: 0.80),
+        Color(red: 0.82, green: 0.76, blue: 0.94), Color(red: 0.99, green: 0.80, blue: 0.66),
+    ]
 
     var body: some View {
         Canvas { ctx, size in
             var rng = SeededRandom(seed: UInt64(seed))
-            let base = size.height
+            let waterH: CGFloat = water ? size.height * 0.07 : 0
+            let base = size.height - waterH
+            // Rolling hills behind the town.
+            var hills = Path()
+            hills.move(to: CGPoint(x: 0, y: base))
+            hills.addLine(to: CGPoint(x: 0, y: base - size.height * 0.3))
+            hills.addCurve(to: CGPoint(x: size.width, y: base - size.height * 0.26),
+                           control1: CGPoint(x: size.width * 0.3, y: base - size.height * 0.45),
+                           control2: CGPoint(x: size.width * 0.6, y: base - size.height * 0.12))
+            hills.addLine(to: CGPoint(x: size.width, y: base))
+            ctx.fill(hills, with: .color(night ? Color(red: 0.12, green: 0.16, blue: 0.22) : Color(red: 0.55, green: 0.76, blue: 0.52)))
             var x: CGFloat = -10
-            let fill = night ? Color(red: 0.12, green: 0.13, blue: 0.24) : Color(red: 0.30, green: 0.38, blue: 0.55)
-            let lit = night ? Color(red: 1, green: 0.85, blue: 0.45) : Color.white.opacity(0.35)
+            let lit = night ? Color(red: 1, green: 0.85, blue: 0.45) : Color.white.opacity(0.7)
             while x < size.width {
                 let w = CGFloat(rng.next(in: 30...70))
                 let h = size.height * CGFloat(rng.next(in: 12...38)) / 100
                 let rect = CGRect(x: x, y: base - h, width: w, height: h)
-                ctx.fill(Path(rect), with: .color(fill))
+                let fill = night ? Color(red: 0.12, green: 0.13, blue: 0.24) : Self.pastels[rng.next(in: 0...(Self.pastels.count - 1))]
+                ctx.fill(Path(roundedRect: rect, cornerSize: CGSize(width: 3, height: 3)), with: .color(fill))
                 var wy = rect.minY + 8
                 while wy < base - 10 {
                     var wx = rect.minX + 6
                     while wx < rect.maxX - 8 {
-                        if rng.next(in: 0...9) < (night ? 5 : 3) {
+                        if rng.next(in: 0...9) < (night ? 5 : 6) {
                             ctx.fill(Path(CGRect(x: wx, y: wy, width: 5, height: 6)), with: .color(lit))
                         }
                         wx += 10
@@ -497,53 +664,12 @@ private struct Skyline: View {
                 }
                 x += w + CGFloat(rng.next(in: 2...8))
             }
-        }
-        .allowsHitTesting(false)
-    }
-}
-
-/// The strip between the two homes: a dotted flight path with a little
-/// plane flying back and forth and a beating heart in the middle.
-private struct HomesLink: View {
-    var vertical: Bool
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    var body: some View {
-        TimelineView(.animation(minimumInterval: 1 / 20, paused: reduceMotion)) { context in
-            let t = reduceMotion ? 0 : context.date.timeIntervalSinceReferenceDate
-            GeometryReader { geo in
-                let length = vertical ? geo.size.height : geo.size.width
-                // 0...1...0 across the strip, slowing at each end.
-                let p = 0.5 - 0.5 * cos(t * 0.35)
-                let goingForward = sin(t * 0.35) > 0
-                let pos = 50 + (length - 100) * CGFloat(p)
-                ZStack {
-                    Path { path in
-                        if vertical {
-                            path.move(to: CGPoint(x: geo.size.width / 2, y: 20))
-                            path.addLine(to: CGPoint(x: geo.size.width / 2, y: geo.size.height - 20))
-                        } else {
-                            path.move(to: CGPoint(x: 20, y: geo.size.height / 2))
-                            path.addLine(to: CGPoint(x: geo.size.width - 20, y: geo.size.height / 2))
-                        }
-                    }
-                    .stroke(Color.white.opacity(0.3), style: StrokeStyle(lineWidth: 3, lineCap: .round, dash: [2, 10]))
-                    Image(systemName: "heart.fill")
-                        .font(.system(size: 30))
-                        .foregroundColor(Color(red: 1, green: 0.48, blue: 0.66))
-                        .scaleEffect(CGFloat(1 + 0.12 * max(0, sin(t * 5))))
-                        .position(x: geo.size.width / 2, y: geo.size.height / 2)
-                    Image(systemName: "airplane")
-                        .font(.system(size: 30, weight: .semibold))
-                        .foregroundColor(.white)
-                        // The symbol points right; turn it to face where it is flying.
-                        .rotationEffect(.degrees(vertical ? (goingForward ? 90 : -90) : (goingForward ? 0 : 180)))
-                        .position(vertical ? CGPoint(x: geo.size.width / 2, y: pos) : CGPoint(x: pos, y: geo.size.height / 2))
-                }
+            if water {
+                ctx.fill(Path(CGRect(x: 0, y: base, width: size.width, height: waterH)),
+                         with: .color(night ? Color(red: 0.10, green: 0.14, blue: 0.28) : Color(red: 0.45, green: 0.70, blue: 0.92)))
             }
         }
-        .frame(width: vertical ? 56 : nil, height: vertical ? nil : 56)
-        .accessibilityHidden(true)
+        .allowsHitTesting(false)
     }
 }
 
@@ -557,7 +683,7 @@ private struct Landmarks: View {
     var body: some View {
         Canvas { ctx, size in
             let w = size.width, h = size.height
-            let ink = night ? Color(red: 0.09, green: 0.1, blue: 0.2) : Color(red: 0.24, green: 0.31, blue: 0.48)
+            let ink = night ? Color(red: 0.09, green: 0.1, blue: 0.2) : Color(red: 0.86, green: 0.68, blue: 0.38)
             let glow = Color(red: 1, green: 0.85, blue: 0.45)
             switch city.timeZoneID {
             case "Europe/London":
@@ -574,19 +700,20 @@ private struct Landmarks: View {
                 // Big wheel.
                 let r = min(w, h) * 0.17
                 let c = CGPoint(x: w * 0.62, y: h - r - 8)
-                ctx.stroke(Path(ellipseIn: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2)), with: .color(ink), lineWidth: 4)
+                let wheel = night ? ink : Color.white
+                ctx.stroke(Path(ellipseIn: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2)), with: .color(wheel), lineWidth: 4)
                 for i in 0..<8 {
                     let a = Double(i) * .pi / 4
                     var spoke = Path()
                     spoke.move(to: c)
                     spoke.addLine(to: CGPoint(x: c.x + r * CGFloat(cos(a)), y: c.y + r * CGFloat(sin(a))))
-                    ctx.stroke(spoke, with: .color(ink), lineWidth: 1.5)
+                    ctx.stroke(spoke, with: .color(wheel), lineWidth: 1.5)
                 }
                 var legs = Path()
                 legs.move(to: CGPoint(x: c.x - r * 0.5, y: h))
                 legs.addLine(to: c)
                 legs.addLine(to: CGPoint(x: c.x + r * 0.5, y: h))
-                ctx.stroke(legs, with: .color(ink), lineWidth: 4)
+                ctx.stroke(legs, with: .color(wheel), lineWidth: 4)
             case "Asia/Hong_Kong":
                 // The Peak behind the towers.
                 var hill = Path()
@@ -600,7 +727,7 @@ private struct Landmarks: View {
                 tower.move(to: CGPoint(x: tx, y: h))
                 tower.addLine(to: CGPoint(x: tx + tw * 0.5, y: h * 0.4))
                 tower.addLine(to: CGPoint(x: tx + tw, y: h))
-                ctx.fill(tower, with: .color(ink))
+                ctx.fill(tower, with: .color(night ? ink : Color(red: 0.36, green: 0.55, blue: 0.86)))
                 var mast = Path()
                 mast.move(to: CGPoint(x: tx + tw * 0.5, y: h * 0.4))
                 mast.addLine(to: CGPoint(x: tx + tw * 0.5, y: h * 0.33))
