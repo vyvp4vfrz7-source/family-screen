@@ -14,7 +14,7 @@ struct DashboardView: View {
     @State private var wakeUntil = Date.distantPast
     @State private var lastChimeHour = -1
     @State private var sheet: SheetRoute?
-    @State private var pageIndex = 0
+    @State private var pageIndex = Demo.startPage ?? 0
 
     enum SheetRoute: Identifiable {
         case settings, addPhoto, notice, article(URL)
@@ -92,7 +92,7 @@ struct DashboardView: View {
             .tabViewStyle(.page(indexDisplayMode: pages.count > 1 ? .always : .never))
             .task(id: "\(pageIndex)-\(settings.rotatePages)-\(settings.pageSeconds)-\(pages.count)") {
                 // Restarts after every swipe, so a page you swiped to stays for the full time.
-                guard settings.rotatePages, pages.count > 1 else { return }
+                guard settings.rotatePages, pages.count > 1, Demo.startPage == nil else { return }
                 try? await Task.sleep(nanoseconds: UInt64(max(settings.pageSeconds, 10)) * 1_000_000_000)
                 guard !Task.isCancelled else { return }
                 withAnimation { pageIndex = (pageIndex + 1) % pages.count }
@@ -105,16 +105,16 @@ struct DashboardView: View {
             .frame(height: 84)
         }
         .padding(12)
-        .onChange(of: pages) { _ in pageIndex = 0 }
+        .onChange(of: pages) { _ in pageIndex = Demo.startPage ?? 0 }
     }
 
     @ViewBuilder
     private func pageView(_ page: ScreenPage) -> some View {
         switch page {
         case .home: homePage.padding(.bottom, 24)
-        case .photos: PhotoPanel(events: calendar.events, onAdd: { sheet = .addPhoto }, bigTime: true, canEdit: !settings.grandparentMode).padding(.bottom, 24)
+        case .photos: PhotoPanel(events: calendar.events, onAdd: { sheet = .addPhoto }, bigTime: true, canEdit: !settings.grandparentMode, timeWeather: weatherA, otherWeather: weatherB).padding(.bottom, 24)
         case .clocks: TwoHomesPage(weatherA: weatherA, weatherB: weatherB).padding(.bottom, 24)
-        case .calendar: TwoWeekPage(feed: calendar).padding(.bottom, 24)
+        case .calendar: TwoWeekPage(feed: calendar, weather: weatherA).padding(.bottom, 24)
         case .birthdays: BirthdaysPage(feed: calendar).padding(.bottom, 24)
         case .pinkClock: PinkClockPage(weatherA: weatherA).padding(.bottom, 24)
         case .news: NewsPage(headlines: news.headlines) { sheet = .article($0) }.padding(.bottom, 24)

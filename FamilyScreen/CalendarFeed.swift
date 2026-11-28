@@ -26,6 +26,12 @@ final class CalendarFeed: ObservableObject {
     private let store = EKEventStore()
 
     func load() async {
+        if Demo.isOn {
+            fortnight = Demo.events()
+            events = Array(fortnight.prefix(12))
+            birthdays = Demo.birthdays()
+            return
+        }
         let granted: Bool
         if #available(iOS 17, *) {
             granted = (try? await store.requestFullAccessToEvents()) ?? false

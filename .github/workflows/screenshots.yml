@@ -39,13 +39,15 @@ jobs:
           xcrun simctl terminate $UDID $BID
           for orient in portrait landscape; do
             ARGS="-demoData"; [ $orient = landscape ] && ARGS="-demoData -landscape"
-            xcrun simctl launch $UDID $BID $ARGS
-            sleep 12
-            for page in 1-home 2-photos 3-clocks 4-calendar 5-news; do
+            i=0
+            # One launch per page ("-page N" opens on it and stops the turning).
+            for page in 1-home 2-photos 3-clocks 4-calendar 5-birthdays 6-pinkclock 7-news; do
+              xcrun simctl launch $UDID $BID $ARGS -page $i
+              sleep 10
               xcrun simctl io $UDID screenshot shots/$orient-$page.png
-              sleep 20
+              xcrun simctl terminate $UDID $BID
+              i=$((i+1))
             done
-            xcrun simctl terminate $UDID $BID
           done
           ls shots
       - uses: actions/upload-artifact@v4

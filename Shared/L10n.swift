@@ -66,6 +66,7 @@ enum L: String {
     case grandparentMode, grandparentHint, allowRemote, grandScreens, grandScreensHint, noGrandScreens, remoteLocked, saveToScreen, holdForSettings
     case plusBuy, plusRestore, plusOwned, plusHint, plusUnavailable, plusLocked
     case welcomeTitle, welcomeLead, welcomeStart, welcomeLater
+    case freeDay, daysUnit, readStory
     case sunny, clearNight, partlyCloudy, cloudy, foggy, drizzle, rainy, snowy, thunder
 
     private static let table: [L: [AppLanguage: String]] = [
@@ -209,6 +210,9 @@ enum L: String {
         .remoteLocked: [.english: "The grandparents have turned off changes from family. Ask them to turn on “Let family change this screen”.", .cantonese: "長輩已經關咗家人設定。請佢哋開返「容許家人幫手設定」。", .mandarin: "长辈已关闭家人设置。请他们打开「允许家人帮忙设置」。"],
         .saveToScreen: [.english: "Send", .cantonese: "傳送", .mandarin: "发送"],
         .holdForSettings: [.english: "Hold for 3 seconds to open Settings", .cantonese: "㩒住三秒開設定", .mandarin: "按住三秒打开设置"],
+        .freeDay: [.english: "Free", .cantonese: "冇嘢", .mandarin: "没事", .hindi: "खाली", .polish: "Wolne"],
+        .daysUnit: [.english: "days", .cantonese: "日", .mandarin: "天", .hindi: "दिन", .polish: "dni"],
+        .readStory: [.english: "Read full story", .cantonese: "閱讀原文", .mandarin: "阅读原文", .hindi: "पूरी खबर पढ़ें", .polish: "Czytaj całość"],
         .sunny: [.english: "Sunny", .cantonese: "天晴", .mandarin: "晴", .hindi: "धूप", .polish: "Słonecznie"],
         .clearNight: [.english: "Clear", .cantonese: "天晴", .mandarin: "晴", .hindi: "साफ़", .polish: "Bezchmurnie"],
         .partlyCloudy: [.english: "Partly cloudy", .cantonese: "部分時間有雲", .mandarin: "多云间晴", .hindi: "आंशिक बादल", .polish: "Częściowe zachmurzenie"],

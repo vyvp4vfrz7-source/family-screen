@@ -9,6 +9,9 @@ struct PhotoPanel: View {
     var bigTime = false
     /// false on a grandparents' screen: no add button and no delete.
     var canEdit = true
+    /// Weather for the line under the big time.
+    var timeWeather: WeatherNow? = nil
+    var otherWeather: WeatherNow? = nil
     @ObservedObject private var store = FamilyStore.shared
     @ObservedObject private var settings = AppSettings.shared
     @ObservedObject private var album = SharedAlbumSource.shared
@@ -41,14 +44,23 @@ struct PhotoPanel: View {
                 Color.clear
                     .overlay(Image(uiImage: image).resizable().scaledToFill().blur(radius: 30).opacity(0.5))
                     .clipped()
-                FramedPhoto(image: image, style: settings.frameStyle, caption: slide.caption,
-                            panZoom: settings.panZoom, seconds: Double(max(settings.slideSeconds, 5)),
-                            seed: abs(slide.id.hashValue % 997))
-                    .id(slide.id)
-                    .transition(.opacity)
+                if bigTime {
+                    // Full-screen photo, like the Home Clock photo clock.
+                    Color.clear
+                        .overlay(Image(uiImage: image).resizable().scaledToFill())
+                        .clipped()
+                        .id(slide.id)
+                        .transition(.opacity)
+                } else {
+                    FramedPhoto(image: image, style: settings.frameStyle, caption: slide.caption,
+                                panZoom: settings.panZoom, seconds: Double(max(settings.slideSeconds, 5)),
+                                seed: abs(slide.id.hashValue % 997))
+                        .id(slide.id)
+                        .transition(.opacity)
+                }
                 caption(for: slide)
                 if bigTime {
-                    BigPhotoTime(onLeft: timeOnLeft)
+                    BigPhotoTime(onLeft: timeOnLeft, weather: timeWeather, otherWeather: otherWeather)
                         .id("time-\(slide.id)")
                         .transition(.opacity)
                 }
@@ -148,28 +160,55 @@ struct PhotoPanel: View {
 /// The hour and minute stacked as huge frosted digits over one side of the photo.
 struct BigPhotoTime: View {
     var onLeft: Bool
+    var weather: WeatherNow? = nil
+    var otherWeather: WeatherNow? = nil
     @ObservedObject private var settings = AppSettings.shared
 
     var body: some View {
         GeometryReader { geo in
             TimelineView(.periodic(from: .now, by: 1)) { context in
                 let parts = Self.parts(context.date, city: settings.cityA, language: settings.language)
-                let size = geo.size.height * 0.44
-                VStack(spacing: -size * 0.12) {
-                    Text(parts.hour)
-                    Text(parts.minute)
+                let size = geo.size.height * 0.42
+                VStack(alignment: onLeft ? .leading : .trailing, spacing: 6) {
+                    VStack(spacing: -size * 0.14) {
+                        glass(parts.hour, size: size)
+                        glass(parts.minute, size: size)
+                    }
+                    Text(info(context.date))
+                        .font(.title3.weight(.semibold))
+                        .foregroundColor(.white)
+                        .multilineTextAlignment(onLeft ? .leading : .trailing)
+                        .shadow(color: .black.opacity(0.55), radius: 6, y: 1)
+                        .lineLimit(2).minimumScaleFactor(0.7)
                 }
-                .font(.custom("AvenirNextCondensed-Heavy", size: size))
-                .monospacedDigit()
-                .foregroundColor(.white.opacity(0.42))
-                .shadow(color: .black.opacity(0.25), radius: 12, y: 4)
-                .lineLimit(1).minimumScaleFactor(0.5)
                 .padding(.horizontal, geo.size.width * 0.04)
                 .frame(width: geo.size.width, height: geo.size.height, alignment: onLeft ? .leading : .trailing)
             }
         }
         .allowsHitTesting(false)
         .animation(.easeInOut(duration: 0.8), value: onLeft)
+    }
+
+    /// Frosted-glass digits: the photo shows through blurred, with a soft white edge.
+    private func glass(_ text: String, size: CGFloat) -> some View {
+        let digits = Text(text)
+            .font(.custom("AvenirNextCondensed-Heavy", size: size))
+            .monospacedDigit()
+        return ZStack {
+            digits.foregroundStyle(.ultraThinMaterial)
+            digits.foregroundColor(.white.opacity(0.16))
+        }
+        .shadow(color: .white.opacity(0.55), radius: 1)
+        .shadow(color: .black.opacity(0.28), radius: 10, y: 4)
+        .lineLimit(1).minimumScaleFactor(0.5)
+    }
+
+    private func info(_ now: Date) -> String {
+        var first = Format.string(now, template: "EEEEdMMM", city: settings.cityA, language: settings.language)
+        if let w = weather { first += " · \(settings.cityA.name) \(Int(w.temperature.rounded()))°" }
+        var second = "\(settings.cityB.name) \(Format.time(now, city: settings.cityB, language: settings.language))"
+        if let w = otherWeather { second += " \(Int(w.temperature.rounded()))°" }
+        return first + "\n" + second
     }
 
     static func parts(_ date: Date, city: City, language: AppLanguage) -> (hour: String, minute: String) {
@@ -465,31 +504,102 @@ struct AddPhotoView: View {
 
 // MARK: - News list page
 
+/// Like the Home Clock news page: one story large on the left, turning by
+/// itself every few seconds, and all the headlines in a list beside it.
 struct NewsPage: View {
     var headlines: [Headline]
     var open: (URL) -> Void
     @ObservedObject private var settings = AppSettings.shared
+    @State private var featured = 0
+
+    private var stories: [Headline] { Array(headlines.prefix(20)) }
 
     var body: some View {
-        Card(title: settings.t(.news)) {
-            if headlines.isEmpty {
-                Text(settings.t(.noFeeds)).font(.title3).foregroundColor(.secondary)
+        VStack(alignment: .leading, spacing: 12) {
+            PageTitle(key: .news, trailing: stories.isEmpty ? nil : "\(stories.count)")
+            if stories.isEmpty {
+                VStack(spacing: 12) {
+                    Image(systemName: "newspaper").font(.system(size: 54)).foregroundColor(Theme.label)
+                    Text(settings.t(.noFeeds)).font(.title3).foregroundColor(Theme.label)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(RoundedRectangle(cornerRadius: 22).fill(Theme.card))
             } else {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
-                        ForEach(headlines.prefix(12)) { h in
-                            Button { open(h.link) } label: {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(h.source).font(.subheadline.bold()).foregroundColor(.accentColor)
-                                    Text(h.title).font(.title3.weight(.semibold)).foregroundColor(.white)
-                                        .multilineTextAlignment(.leading)
-                                }
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                        }
+                GeometryReader { geo in
+                    let wide = geo.size.width > geo.size.height
+                    let layout = wide ? AnyLayoutBox.horizontal : AnyLayoutBox.vertical
+                    layout.stack {
+                        hero(stories[featured % stories.count])
+                            .frame(width: wide ? geo.size.width * 0.5 : nil, height: wide ? nil : geo.size.height * 0.45)
+                        list
                     }
                 }
             }
         }
+        .foregroundColor(.white)
+        .task(id: stories.count) {
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 12_000_000_000)
+                guard !Task.isCancelled, !stories.isEmpty else { return }
+                withAnimation(.easeInOut(duration: 0.6)) { featured = (featured + 1) % min(stories.count, 8) }
+            }
+        }
+    }
+
+    private func hero(_ h: Headline) -> some View {
+        let color = SoftColors.for(h.source)
+        return VStack(alignment: .leading, spacing: 14) {
+            Spacer(minLength: 0)
+            Text(h.source.uppercased()).font(.subheadline.weight(.heavy)).foregroundColor(Theme.notice)
+                .lineLimit(1)
+            Text(h.title).font(.system(size: 36, weight: .bold))
+                .lineLimit(6).minimumScaleFactor(0.55)
+                .multilineTextAlignment(.leading)
+                .id(h.id).transition(.opacity)
+            Button { open(h.link) } label: {
+                Text(settings.t(.readStory) + " ↗").font(.headline).foregroundColor(.black)
+                    .padding(.horizontal, 18).padding(.vertical, 10)
+                    .background(Capsule().fill(Theme.notice))
+            }
+            HStack(spacing: 5) {
+                ForEach(0..<min(stories.count, 8), id: \.self) { i in
+                    Capsule().fill(i == featured % stories.count ? Theme.notice : Color.white.opacity(0.25))
+                        .frame(width: i == featured % stories.count ? 22 : 8, height: 6)
+                }
+            }
+        }
+        .padding(26)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+        .background(
+            RoundedRectangle(cornerRadius: 22)
+                .fill(LinearGradient(colors: [color.opacity(0.45), Theme.card], startPoint: .topTrailing, endPoint: .bottomLeading))
+        )
+        .overlay(RoundedRectangle(cornerRadius: 22).stroke(Color.white.opacity(0.06)))
+    }
+
+    private var list: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 4) {
+                ForEach(Array(stories.enumerated()), id: \.element.id) { i, h in
+                    Button {
+                        withAnimation { featured = i }
+                    } label: {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(h.source.uppercased()).font(.caption.weight(.heavy)).foregroundColor(SoftColors.for(h.source))
+                                .lineLimit(1)
+                            Text(h.title).font(.body.weight(.semibold)).foregroundColor(.white)
+                                .lineLimit(3).multilineTextAlignment(.leading)
+                        }
+                        .padding(10)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(RoundedRectangle(cornerRadius: 12).fill(i == featured % max(stories.count, 1) ? Color.white.opacity(0.08) : .clear))
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(i == featured % max(stories.count, 1) ? Theme.notice.opacity(0.8) : .clear, lineWidth: 2))
+                    }
+                }
+            }
+            .padding(8)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(RoundedRectangle(cornerRadius: 22).fill(Theme.card))
     }
 }
