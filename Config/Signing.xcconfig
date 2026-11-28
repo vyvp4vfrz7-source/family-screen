@@ -7,7 +7,7 @@ DEVELOPMENT_TEAM =
 // 3. Where people send reports about content, and your privacy policy page.
 //    Keep the odd "$()" in the URL: it stops "//" being read as a comment.
 SUPPORT_EMAIL = support@example.com
-PRIVACY_URL = https:/$()/example.com/family-screen/privacy
+PRIVACY_URL = https:/$()/vyvp4vfrz7-source.github.io/family-screen/privacy.html
 
 // Leave NO while using a free Apple ID. Change to YES after joining the paid
 // Apple Developer Program: turns on CloudKit sync between homes and Apple WeatherKit.
