@@ -1,0 +1,55 @@
+name: Home Clock screenshots
+# Runs Home Clock in an iPad simulator and saves screenshots to the
+# homeclock-screenshots branch, to check the web pages really load.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "HomeClock/**"
+      - "WebPages/**"
+      - ".github/workflows/homeclock-shots.yml"
+permissions:
+  contents: write
+jobs:
+  shots:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Home Clock for the iPad simulator
+        run: |
+          set +e
+          xcodebuild -project FamilyScreen.xcodeproj -target HomeClock -sdk iphonesimulator \
+            -configuration Debug CODE_SIGNING_ALLOWED=NO build SYMROOT=$PWD/build > build.log 2>&1
+          status=$?
+          grep -E "error:|BUILD (SUCCEEDED|FAILED)" build.log | sort -u | head -80
+          exit $status
+      - name: Boot an iPad
+        run: |
+          UDID=$(xcrun simctl list devices available | grep -iE "iPad (Air|\(|[0-9])" | head -1 | grep -oE '[0-9A-F-]{36}')
+          [ -z "$UDID" ] && UDID=$(xcrun simctl list devices available | grep -i ipad | head -1 | grep -oE '[0-9A-F-]{36}')
+          echo "UDID=$UDID" >> $GITHUB_ENV
+          xcrun simctl boot $UDID
+          xcrun simctl bootstatus $UDID -b
+      - name: Run and capture
+        run: |
+          APP=build/Debug-iphonesimulator/HomeClock.app
+          BID=$(/usr/libexec/PlistBuddy -c "Print CFBundleIdentifier" $APP/Info.plist)
+          xcrun simctl install $UDID $APP
+          mkdir -p shots
+          xcrun simctl launch $UDID $BID
+          sleep 25
+          xcrun simctl io $UDID screenshot shots/1-online.png
+          xcrun simctl terminate $UDID $BID
+          # Second launch: pages now come from the saved copy too.
+          xcrun simctl launch $UDID $BID
+          sleep 15
+          xcrun simctl io $UDID screenshot shots/2-relaunch.png
+          ls -la shots
+      - name: Save screenshots to the homeclock-screenshots branch
+        run: |
+          cd shots
+          git init -q -b homeclock-screenshots
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add . && git commit -qm "Home Clock screenshots $GITHUB_SHA"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" homeclock-screenshots
