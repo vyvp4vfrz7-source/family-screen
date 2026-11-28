@@ -10,13 +10,7 @@ struct FamilyScreenApp: App {
 
     var body: some Scene {
         WindowGroup {
-            Group {
-                if UIDevice.current.userInterfaceIdiom == .phone {
-                    PhoneHomeView()
-                } else {
-                    DashboardView()
-                }
-            }
+            RootView()
                 .preferredColorScheme(.dark)
                 .onAppear {
                     // Keep the wall screen on. A phone sleeps as usual.
@@ -24,6 +18,21 @@ struct FamilyScreenApp: App {
                     Demo.seedIfNeeded()
                     Demo.rotateIfNeeded()
                 }
+        }
+    }
+}
+
+/// Shows the welcome screen once, then the family screen.
+struct RootView: View {
+    @ObservedObject private var settings = AppSettings.shared
+
+    var body: some View {
+        if !settings.didSetup && !Demo.isOn {
+            WelcomeView()
+        } else if UIDevice.current.userInterfaceIdiom == .phone {
+            PhoneHomeView()
+        } else {
+            DashboardView()
         }
     }
 }

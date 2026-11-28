@@ -94,6 +94,8 @@ final class AppSettings: ObservableObject {
     @Published var grandparentMode: Bool { didSet { save() } }
     /// Lets the adult children change this screen from their own iPad. On by default.
     @Published var allowRemote: Bool { didSet { save() } }
+    /// false until the welcome screen has been finished on this iPad.
+    @Published var didSetup: Bool { didSet { save() } }
     /// Identifies this iPad's screen to the rest of the family.
     let screenID: String
     /// Called after every change, so a grandparents' screen can tell the family.
@@ -128,6 +130,7 @@ final class AppSettings: ObservableObject {
         var grandparentMode: Bool?
         var allowRemote: Bool?
         var screenID: String?
+        var didSetup: Bool?
     }
 
     private let key = "settings.v1"
@@ -135,6 +138,7 @@ final class AppSettings: ObservableObject {
 
     private init() {
         var s = Stored()
+        let hadSaved = UserDefaults.standard.data(forKey: key) != nil
         if let data = UserDefaults.standard.data(forKey: key),
            let decoded = try? JSONDecoder().decode(Stored.self, from: data) {
             s = decoded
@@ -164,6 +168,8 @@ final class AppSettings: ObservableObject {
         grandparentMode = s.grandparentMode ?? false
         allowRemote = s.allowRemote ?? true
         screenID = s.screenID ?? UUID().uuidString
+        // iPads that already had settings skip the welcome screen.
+        didSetup = s.didSetup ?? hadSaved
         if !homeClockPages {
             // One-time update: turn on the new pages and show photos large, without a frame.
             pages = ScreenPage.allCases.filter { pages.contains($0) || ScreenPage.starter.contains($0) }
@@ -183,7 +189,7 @@ final class AppSettings: ObservableObject {
                        pages: pages, rotatePages: rotatePages, pageSeconds: pageSeconds, hiddenHomes: hiddenHomes,
                        sharedAlbumID: sharedAlbumID, frameStyle: frameStyle, festivalThemes: festivalThemes,
                        panZoom: panZoom, homeClockPages: homeClockPages,
-                       grandparentMode: grandparentMode, allowRemote: allowRemote, screenID: screenID)
+                       grandparentMode: grandparentMode, allowRemote: allowRemote, screenID: screenID, didSetup: didSetup)
         if let data = try? JSONEncoder().encode(s) {
             UserDefaults.standard.set(data, forKey: key)
         }

@@ -64,9 +64,14 @@ enum L: String {
     case notice, noticeEmpty, noticeHint, clearNotice, nextUp
     case pagePinkClock, next2Weeks, birthdays, noBirthdays, inDays, birthdayToday, hoursAhead, hoursBehind, sameTime
     case grandparentMode, grandparentHint, allowRemote, grandScreens, grandScreensHint, noGrandScreens, remoteLocked, saveToScreen, holdForSettings
+    case welcomeTitle, welcomeLead, welcomeStart, welcomeLater
     case sunny, clearNight, partlyCloudy, cloudy, foggy, drizzle, rainy, snowy, thunder
 
     private static let table: [L: [AppLanguage: String]] = [
+        .welcomeTitle: [.english: "Welcome to Family Screen", .cantonese: "歡迎使用 Family Screen", .mandarin: "欢迎使用 Family Screen", .hindi: "Family Screen में आपका स्वागत है", .polish: "Witamy w Family Screen"],
+        .welcomeLead: [.english: "Three quick questions and your screen is ready.", .cantonese: "答三條簡單問題，個屏幕就用得。", .mandarin: "回答三个简单问题，屏幕就可以用了。", .hindi: "तीन छोटे सवाल, और आपकी स्क्रीन तैयार है।", .polish: "Trzy krótkie pytania i ekran jest gotowy."],
+        .welcomeStart: [.english: "Start", .cantonese: "開始", .mandarin: "开始", .hindi: "शुरू करें", .polish: "Zaczynamy"],
+        .welcomeLater: [.english: "You can change all of this later in Settings.", .cantonese: "之後可以喺設定再改。", .mandarin: "之后可以在设置中更改。", .hindi: "आप यह सब बाद में सेटिंग्स में बदल सकते हैं।", .polish: "Wszystko zmienisz później w Ustawieniach."],
         .addPhoto: [.english: "Add photo", .cantonese: "加相", .mandarin: "添加照片", .hindi: "फ़ोटो जोड़ें", .polish: "Dodaj zdjęcie"],
         .addNote: [.english: "Add a note…", .cantonese: "寫句說話…", .mandarin: "写一句话…", .hindi: "एक नोट लिखें…", .polish: "Dodaj notatkę…"],
         .send: [.english: "Send", .cantonese: "傳送", .mandarin: "发送", .hindi: "भेजें", .polish: "Wyślij"],
