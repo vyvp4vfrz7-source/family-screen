@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		F5000000000000000000G001 /* ShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F5000000000000000000A005 /* ShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		F5000000000000000000G002 /* WebPages in Resources */ = {isa = PBXBuildFile; fileRef = F5000000000000000000A008 /* WebPages */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -42,6 +43,7 @@
 		F5000000000000000000A005 /* ShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		F5000000000000000000A006 /* ShareExtension-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "ShareExtension-Info.plist"; sourceTree = "<group>"; };
 		F5000000000000000000A007 /* ShareExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ShareExtension.entitlements; sourceTree = "<group>"; };
+		F5000000000000000000A008 /* WebPages */ = {isa = PBXFileReference; lastKnownFileType = folder; path = WebPages; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -74,6 +76,7 @@
 				F5000000000000000000B001 /* FamilyScreen */,
 				F5000000000000000000B002 /* Shared */,
 				F5000000000000000000B003 /* ShareExtension */,
+				F5000000000000000000A008 /* WebPages */,
 				F5000000000000000000D003 /* Config */,
 				F5000000000000000000D002 /* Products */,
 			);
@@ -198,6 +201,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F5000000000000000000G002 /* WebPages in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

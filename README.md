@@ -45,6 +45,18 @@ Before the App Store: set `SUPPORT_EMAIL` and `PRIVACY_URL` in `Config/Signing.x
 
 Each family's data stays in their own iCloud. There is no server and no shared key.
 
+## The web pages inside the app
+
+The app shows the home-clock web pages full screen (`FamilyScreen/WebDashboard.swift`).
+It loads the newest pages from https://vyvp4vfrz7-source.github.io/home-clock/ and saves
+each one, so they still work offline. `WebPages/` holds a copy that is built into the app
+for the first launch.
+
+- **Switch pages:** hold two fingers on the screen for 2 seconds, then pick
+  Family dashboard or Parents' screen, or Reload page.
+- **Update the built-in copy** (only needed before an App Store build):
+  `sh tools/sync-web-pages.sh ../home-clock`
+
 ## What's where
 
 | File | What it does |
