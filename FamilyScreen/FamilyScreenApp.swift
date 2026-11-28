@@ -10,19 +10,14 @@ struct FamilyScreenApp: App {
 
     var body: some Scene {
         WindowGroup {
-            Group {
-                if UIDevice.current.userInterfaceIdiom == .phone {
-                    PhoneHomeView()
-                } else {
-                    DashboardView()
-                }
-            }
+            // The app now shows the home-clock web pages (WebDashboard.swift).
+            // The native SwiftUI screens (DashboardView, PhoneHomeView) stay in the
+            // project so key pages can move back to native later.
+            WebRootView()
                 .preferredColorScheme(.dark)
                 .onAppear {
                     // Keep the wall screen on. A phone sleeps as usual.
                     UIApplication.shared.isIdleTimerDisabled = UIDevice.current.userInterfaceIdiom != .phone
-                    Demo.seedIfNeeded()
-                    Demo.rotateIfNeeded()
                 }
         }
     }
