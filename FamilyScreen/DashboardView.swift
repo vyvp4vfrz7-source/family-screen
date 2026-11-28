@@ -4,6 +4,7 @@ struct DashboardView: View {
     @ObservedObject private var settings = AppSettings.shared
     @ObservedObject private var store = FamilyStore.shared
     @ObservedObject private var network = NetworkStatus.shared
+    @ObservedObject private var plus = PlusStore.shared
     @StateObject private var calendar = CalendarFeed()
     @StateObject private var news = NewsFeedReader()
 
@@ -75,20 +76,26 @@ struct DashboardView: View {
         }
     }
 
+    /// The family's chosen pages, without the Plus pages until they are bought.
+    private var pages: [ScreenPage] {
+        let shown = settings.pages.filter { !$0.needsPlus || plus.isPlus }
+        return shown.isEmpty ? [.home] : shown
+    }
+
     private var dashboard: some View {
         VStack(spacing: 12) {
             TabView(selection: $pageIndex) {
-                ForEach(Array(settings.pages.enumerated()), id: \.element) { i, page in
+                ForEach(Array(pages.enumerated()), id: \.element) { i, page in
                     pageView(page).tag(i)
                 }
             }
-            .tabViewStyle(.page(indexDisplayMode: settings.pages.count > 1 ? .always : .never))
-            .task(id: "\(pageIndex)-\(settings.rotatePages)-\(settings.pageSeconds)-\(settings.pages.count)") {
+            .tabViewStyle(.page(indexDisplayMode: pages.count > 1 ? .always : .never))
+            .task(id: "\(pageIndex)-\(settings.rotatePages)-\(settings.pageSeconds)-\(pages.count)") {
                 // Restarts after every swipe, so a page you swiped to stays for the full time.
-                guard settings.rotatePages, settings.pages.count > 1 else { return }
+                guard settings.rotatePages, pages.count > 1 else { return }
                 try? await Task.sleep(nanoseconds: UInt64(max(settings.pageSeconds, 10)) * 1_000_000_000)
                 guard !Task.isCancelled else { return }
-                withAnimation { pageIndex = (pageIndex + 1) % settings.pages.count }
+                withAnimation { pageIndex = (pageIndex + 1) % pages.count }
             }
             HStack(spacing: 12) {
                 CallOrb { if !settings.grandparentMode { sheet = .settings } }
@@ -98,7 +105,7 @@ struct DashboardView: View {
             .frame(height: 84)
         }
         .padding(12)
-        .onChange(of: settings.pages) { _ in pageIndex = 0 }
+        .onChange(of: pages) { _ in pageIndex = 0 }
     }
 
     @ViewBuilder

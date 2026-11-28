@@ -64,10 +64,17 @@ enum L: String {
     case notice, noticeEmpty, noticeHint, clearNotice, nextUp
     case pagePinkClock, next2Weeks, birthdays, noBirthdays, inDays, birthdayToday, hoursAhead, hoursBehind, sameTime
     case grandparentMode, grandparentHint, allowRemote, grandScreens, grandScreensHint, noGrandScreens, remoteLocked, saveToScreen, holdForSettings
+    case plusBuy, plusRestore, plusOwned, plusHint, plusUnavailable, plusLocked
     case welcomeTitle, welcomeLead, welcomeStart, welcomeLater
     case sunny, clearNight, partlyCloudy, cloudy, foggy, drizzle, rainy, snowy, thunder
 
     private static let table: [L: [AppLanguage: String]] = [
+        .plusBuy: [.english: "Unlock all pages", .cantonese: "解鎖全部頁面", .mandarin: "解锁全部页面", .hindi: "सभी पेज अनलॉक करें", .polish: "Odblokuj wszystkie strony"],
+        .plusRestore: [.english: "Restore purchase", .cantonese: "恢復購買", .mandarin: "恢复购买", .hindi: "ख़रीद बहाल करें", .polish: "Przywróć zakup"],
+        .plusOwned: [.english: "All pages unlocked. Thank you!", .cantonese: "已解鎖全部頁面，多謝支持！", .mandarin: "已解锁全部页面，谢谢支持！", .hindi: "सभी पेज अनलॉक हैं। धन्यवाद!", .polish: "Wszystkie strony odblokowane. Dziękujemy!"],
+        .plusHint: [.english: "Pay once to add the calendar, birthdays, pink clock and news pages. Family Sharing included.", .cantonese: "一次付款，加入日曆、生日、粉紅時鐘同新聞頁面。家人共享適用。", .mandarin: "一次付款，加入日历、生日、粉色时钟和新闻页面。支持家人共享。", .hindi: "एक बार भुगतान करें और कैलेंडर, जन्मदिन, गुलाबी घड़ी और समाचार पेज जोड़ें। फ़ैमिली शेयरिंग शामिल।", .polish: "Zapłać raz, by dodać kalendarz, urodziny, różowy zegar i wiadomości. Z Chmurą rodzinną."],
+        .plusUnavailable: [.english: "The App Store isn't available right now. Try again later.", .cantonese: "暫時連唔到 App Store，請稍後再試。", .mandarin: "暂时无法连接 App Store，请稍后再试。", .hindi: "App Store अभी उपलब्ध नहीं है। बाद में फिर कोशिश करें।", .polish: "App Store jest teraz niedostępny. Spróbuj później."],
+        .plusLocked: [.english: "Plus", .cantonese: "Plus", .mandarin: "Plus", .hindi: "Plus", .polish: "Plus"],
         .welcomeTitle: [.english: "Welcome to Family Screen", .cantonese: "歡迎使用 Family Screen", .mandarin: "欢迎使用 Family Screen", .hindi: "Family Screen में आपका स्वागत है", .polish: "Witamy w Family Screen"],
         .welcomeLead: [.english: "Three quick questions and your screen is ready.", .cantonese: "答三條簡單問題，個屏幕就用得。", .mandarin: "回答三个简单问题，屏幕就可以用了。", .hindi: "तीन छोटे सवाल, और आपकी स्क्रीन तैयार है।", .polish: "Trzy krótkie pytania i ekran jest gotowy."],
         .welcomeStart: [.english: "Start", .cantonese: "開始", .mandarin: "开始", .hindi: "शुरू करें", .polish: "Zaczynamy"],
