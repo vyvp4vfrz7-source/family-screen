@@ -23,3 +23,13 @@ jobs:
           status=$?
           grep -E "error:|warning: .*FamilyScreen/|BUILD (SUCCEEDED|FAILED)" build.log | sort -u | head -150
           exit $status
+      - name: Build Home Clock (web pages app, no signing)
+        if: matrix.apple_services == 'NO'
+        run: |
+          set +e
+          xcodebuild -project FamilyScreen.xcodeproj -target HomeClock \
+            -sdk iphoneos -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO build > homeclock.log 2>&1
+          status=$?
+          grep -E "error:|warning: .*HomeClock/|BUILD (SUCCEEDED|FAILED)" homeclock.log | sort -u | head -150
+          exit $status
